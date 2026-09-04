@@ -1,0 +1,5 @@
+.env
+.venv/
+instagram_session.json
+campaign-schedule.json
+custom-schedule.json

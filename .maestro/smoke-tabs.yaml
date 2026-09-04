@@ -1,0 +1,25 @@
+appId: com.trivense.app
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: "footer-tab-Home"
+    timeout: 90000
+- tapOn:
+    id: "footer-tab-Analytics"
+- extendedWaitUntil:
+    visible:
+      id: "footer-tab-Analytics"
+    timeout: 15000
+- tapOn:
+    id: "footer-tab-Settings"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 15000
+- tapOn:
+    id: "footer-tab-Home"
+- extendedWaitUntil:
+    visible:
+      id: "footer-tab-Home"
+    timeout: 15000

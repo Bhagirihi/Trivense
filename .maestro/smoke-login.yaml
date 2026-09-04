@@ -1,0 +1,23 @@
+appId: com.trivense.app
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 90000
+- assertVisible: "Split expenses, made easy."
+- assertVisible: "Sign in"
+- assertVisible: "Continue with Google"
+- tapOn: "Create account"
+- extendedWaitUntil:
+    visible: "Create account"
+    timeout: 15000
+- assertVisible: "Full name"
+- back
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Email is required"
+    timeout: 10000

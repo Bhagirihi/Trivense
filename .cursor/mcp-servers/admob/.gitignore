@@ -1,0 +1,4 @@
+.env
+.venv/
+credentials/client_secret.json
+credentials/token.json

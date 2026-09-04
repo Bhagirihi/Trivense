@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "265290976146",
+    "project_id": "trivense-app-prod",
+    "storage_bucket": "trivense-app-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265290976146:android:3a532a2acc6284bba9cf4b",
+        "android_client_info": {
+          "package_name": "com.trivense.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "265290976146-074c0qg8ovnfqn9satmts01e0rfcskf1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trivense.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "265290976146-4bp383fmm2i37mlj723jd1iivr16cqki.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAT_P4BjE-h2g-p7a5lb7olzzRbzc9TCWE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "265290976146-4bp383fmm2i37mlj723jd1iivr16cqki.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "265290976146-lnc7pv6spst9c5be6m8e6p9blbshtsa2.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.trivense.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,37 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=pvuybefxxtjwxpqhmgkw&features=database,docs,debugging"
+    },
+    "sentry": {
+      "url": "https://mcp.sentry.dev/mcp"
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com"
+    },
+    "gmail": {
+      "command": "/Users/dhruvdave/Documents/Dhruv/work/Dhruv_Work/OWN/Rasoi/.cursor/mcp-servers/gmail-imap/run.sh",
+      "args": []
+    },
+    "hostinger": {
+      "command": "/Users/dhruvdave/Documents/Dhruv/work/Dhruv_Work/OWN/Rasoi/.cursor/mcp-servers/hostinger/run.sh",
+      "args": []
+    },
+    "instagram": {
+      "command": "/Users/dhruvdave/Documents/Dhruv/work/Dhruv_Work/OWN/Rasoi/.cursor/mcp-servers/instagram/run.sh",
+      "args": []
+    },
+    "firebase": {
+      "command": "/Users/dhruvdave/Documents/Dhruv/work/Dhruv_Work/OWN/Rasoi/.cursor/mcp-servers/firebase/run.sh",
+      "args": []
+    },
+    "admob": {
+      "command": "/Users/dhruvdave/Documents/Dhruv/work/Dhruv_Work/OWN/TripExpanse/Mobile_2/.cursor/mcp-servers/admob/run.sh",
+      "args": []
+    },
+    "google-play": {
+      "command": "/Users/dhruvdave/Documents/Dhruv/work/Dhruv_Work/OWN/TripExpanse/Mobile_2/.cursor/mcp-servers/google-play/run.sh",
+      "args": []
+    }
+  }
+}

@@ -1,0 +1,75 @@
+---
+description: Competitor-first product development — compare, improve, never clone
+alwaysApply: true
+---
+
+# Product Development Rules — Trivense vs Competitors
+
+Goal: faster, simpler, more modern, better for India/travelers/power users — NOT a clone.
+
+## Competitors (equal weight — check all three)
+
+| App | Focus | Play Store |
+|-----|-------|------------|
+| **Tricount** | Group split/settle, free, travel-focused, multi-currency, offline | [link](https://play.google.com/store/apps/details?id=com.tribab.tricount.android) |
+| **Splitwise** | Group split/settle, freemium, export, web, recurring bills, premium limits | [link](https://play.google.com/store/apps/details?id=com.Splitwise.SplitwiseMobile) |
+| **Wallet** | Budget/expense tracker, bank sync, subscriptions, multicurrency, reports | [link](https://play.google.com/store/apps/details?id=com.droid4you.application.wallet) |
+
+Listing assets for all competitors live under `store-assets/competitors/{tricount,splitwise,wallet}/play/`.
+
+## Out of scope (do not build or suggest)
+
+**Photos / receipts** — no receipt attach, receipt gallery, or photo upload on expenses. Do not propose parity with Tricount photo sharing or Splitwise Pro OCR/receipt storage.
+
+**AI features** — no OCR, auto-categorization via ML, voice/NL expense entry, AI summaries, anomaly detection, or other AI/ML-powered features. Prefer simple rules, smart defaults, and clear UX instead.
+
+If Tricount, Splitwise, or Wallet have photos/AI-like capabilities, **do not copy them**. Compete on split/settle, boards, analytics, export, sync, and pricing — not photos or AI.
+
+**Bank account linking** — Wallet's core is automatic bank sync. Do not chase full bank-aggregator parity unless explicitly scoped; Trivense focuses on manual/offline-first group splitting.
+
+## Before every change
+
+1. Does **Tricount** have this? How do they solve it?
+2. Does **Splitwise** have this? How do they solve it?
+3. Does **Wallet** have this? How do they solve it?
+4. Can we simplify, speed up, or automate without AI?
+5. Retention, reviews, premium potential?
+6. Never implement just because it exists — and never implement out-of-scope items above.
+
+## Feature removal
+
+Never remove without checking **Tricount, Splitwise, and Wallet**. If any of them has it → do not remove; improve, premium-gate, optionalize, or redesign. Remove only if UX harm, confusion, duplication, or zero usage.
+
+## Mandatory analysis format
+
+For feature discussions provide **all three**:
+
+- **Tricount** — has/how/strengths/weaknesses
+- **Splitwise** — has/how/strengths/weaknesses
+- **Wallet** — has/how/strengths/weaknesses
+- **Our app** — current/gaps/UX wins
+- **Recommendation** — KEEP | IMPROVE | REDESIGN | ADD | REMOVE
+
+## UX priorities
+
+Less taps/typing, smart defaults (non-AI), offline-first, fast load, one-handed use, clear empty states & onboarding, dark mode, accessibility.
+
+## Automation (allowed, non-AI)
+
+Settlement math, split calculations, budget alerts, recurring reminders (rule-based), export formatting, sync — no machine learning required.
+
+## Premium classification
+
+Every feature: Free | Premium | Enterprise — with WHY. Benchmark against Tricount (free), Splitwise Pro limits, and Wallet subscription tiers.
+
+## Engineering
+
+Clean architecture, offline-first, optimistic UI, background sync, Supabase RLS, indexing, performance.
+
+## Decision framework
+
+If a request makes us worse than **Tricount, Splitwise, or Wallet** → stop, explain, suggest better. If any competitor solves it better → explain theirs, propose improved version. If we lack parity with any of the three on a relevant feature → flag immediately.
+
+## Response footer (feature/product work)
+
+End with **Competitive Assessment**: parity % vs Tricount, Splitwise, and Wallet (each), UX improvement, performance, complexity, user value, should implement, plus 2–5 competitive improvements.
