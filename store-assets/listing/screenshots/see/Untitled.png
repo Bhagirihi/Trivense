@@ -1,0 +1,1 @@
+The center-crop export kept the exact Play dimensions, but it clipped some headlines because the AI source is landscape. I’m switching the Android exports to a safer poster layout: full AI artwork remains visible on an exact 1080×1920 canvas, with a soft blurred background fill.

@@ -1,0 +1,2 @@
+id,name,description,total_budget,created_by,created_at,updated_at,board_color,board_icon,per_person_budget,share_code,is_default
+705dc06b-ee20-4b7b-9fea-3d9c2ab3e1d9,Sample Expense Board,Sample board with 365 days of expenses,0.00,97d86741-0b79-4fef-98c5-480ebb21a963,2025-04-23T18:14:01.661260,2025-04-23T18:14:01.661276,#FF6B6B,home,,,False

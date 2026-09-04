@@ -1,0 +1,31 @@
+.DS_Store
+**/.DS_Store
+
+# secrets & env
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env*.local
+*.pem
+*.jks
+*.keystore
+fcm-service-account.json
+google-play-service-account.json
+google-services.json
+*-firebase-adminsdk*.json
+service-account*.json
+
+# dependencies & build
+node_modules/
+website/node_modules/
+**/.next/
+**/.expo/
+ios/Pods/
+android/app/build/
+build-artifacts/
+.vercel/
+
+# huge local artifacts — never commit
+Archive.zip

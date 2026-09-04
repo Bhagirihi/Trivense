@@ -1,0 +1,14 @@
+# TC-003: Register → Login navigation
+appId: com.trivense.app
+---
+- runFlow:
+    file: _bootstrap-guest.yaml
+- tapOn:
+    id: login-go-register
+- extendedWaitUntil:
+    visible: "Full name"
+    timeout: 15000
+- pressKey: Back
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000

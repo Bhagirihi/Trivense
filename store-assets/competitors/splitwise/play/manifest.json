@@ -1,0 +1,40 @@
+{
+  "source": "https://play.google.com/store/apps/details?id=com.Splitwise.SplitwiseMobile",
+  "app": "Splitwise",
+  "developer": "Splitwise",
+  "role": "split/settle incumbent",
+  "package": "com.Splitwise.SplitwiseMobile",
+  "downloaded_at": "2026-07-02",
+  "files": [
+    {
+      "file": "app_icon_512.png",
+      "url": "https://play-lh.googleusercontent.com/0H4UbwiIienhLb6jn_zs7wZ06Oqw2DtqZmoUw6puac1F5ZalD_Jja14N7gGk1seq78403uGUvdmtiVxqckMw=s512-rw",
+      "bytes": 21135
+    },
+    {
+      "file": "phone_screenshot_1.png",
+      "url": "https://play-lh.googleusercontent.com/hGTdx0Nk41UaCgJvgZm5JIr011sdl_wb3gd-wT9TZyAHi4Jliz-c-RXa3AB75K3oR3jlns9dW8zOpA0jWJXqAA=s0-rw",
+      "bytes": 733084
+    },
+    {
+      "file": "phone_screenshot_2.png",
+      "url": "https://play-lh.googleusercontent.com/e300NIECQBrgHVtxRoBpMY-edaIlQ6bEi47HoroEUTRiuf08uhsV9CRlEz4Qbcc2lYy3_A3HLQldfxAr-D9vxw=s0-rw",
+      "bytes": 594046
+    },
+    {
+      "file": "phone_screenshot_3.png",
+      "url": "https://play-lh.googleusercontent.com/jjSjJHDXXuiIjVoNKJcANVYraQom2K8OE5erh0Gsjf-OkI4pWlgVurJD64LrXpy9tcImF3yvJ-lFrL0SVwbsMg=s0-rw",
+      "bytes": 502340
+    },
+    {
+      "file": "phone_screenshot_4.png",
+      "url": "https://play-lh.googleusercontent.com/BQ2UI9bVhP6V5i7LEJD0Q8ojjF8qwkW_78Lfr11Z4V_pGN1djkpivTAGs5mlfskWGHDJWaV5Fq6d2WnO-BzdzQ=s0-rw",
+      "bytes": 511698
+    },
+    {
+      "file": "phone_screenshot_5.png",
+      "url": "https://play-lh.googleusercontent.com/SsPKmqroq5pRWu-z9xz9tn-7wBQawvAd7Eiyd_oUE06j9XAkKfq7qsAU9_ZqaSScr8_MesaPo93yF55kIhh8=s0-rw",
+      "bytes": 525939
+    }
+  ]
+}

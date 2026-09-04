@@ -1,0 +1,21 @@
+# TC-004: Register form validation
+appId: com.trivense.app
+---
+- runFlow:
+    file: _bootstrap-guest.yaml
+- tapOn:
+    id: login-go-register
+- extendedWaitUntil:
+    visible: "Full name"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Continue with Google"
+    direction: DOWN
+- tapOn:
+    text: "Create account"
+    index: 1
+- extendedWaitUntil:
+    visible: "Full name is required"
+    timeout: 10000
+- assertVisible: "Email is required"

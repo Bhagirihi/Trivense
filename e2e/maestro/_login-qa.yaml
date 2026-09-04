@@ -1,0 +1,19 @@
+# Sign in with QA credentials (env: QA_EMAIL, QA_PASSWORD)
+appId: com.trivense.app
+---
+- runFlow:
+    file: _complete-onboarding.yaml
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 30000
+- tapOn: "you@example.com"
+- inputText: ${QA_EMAIL}
+- tapOn: "Your password"
+- inputText: ${QA_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: login-sign-in-button
+- extendedWaitUntil:
+    visible:
+      id: screen-home
+    timeout: 90000

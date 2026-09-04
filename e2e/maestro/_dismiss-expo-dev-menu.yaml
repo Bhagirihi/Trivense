@@ -1,0 +1,16 @@
+# Dismiss Expo dev client overlays (launcher menu + dev tools sheet)
+appId: com.trivense.app
+---
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "Reload"
+    commands:
+      - pressKey: Back
+      - waitForAnimationToEnd

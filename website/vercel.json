@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/supabase-keepalive",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

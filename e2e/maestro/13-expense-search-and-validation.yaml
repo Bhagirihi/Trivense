@@ -1,0 +1,41 @@
+appId: com.trivense.app
+name: Trivense expense search and form validation
+tags:
+  - regression
+  - expenses
+  - validation
+---
+- runFlow:
+    file: _bootstrap.yaml
+- runFlow:
+    when:
+      visible:
+        id: screen-login
+    file: _login-qa.yaml
+- extendedWaitUntil:
+    visible:
+      id: screen-home
+    timeout: 90000
+- tapOn: "View all"
+- extendedWaitUntil:
+    visible: "Expenses"
+    timeout: 30000
+- tapOn: "Search expenses"
+- inputText: "nonexistent-expense-qa-123"
+- hideKeyboard
+- takeScreenshot: screenshots/trivense/expenses-empty-search
+- tapOn: "Clear search"
+- tapOn: "Add Expense"
+- extendedWaitUntil:
+    visible: "Enter amount"
+    timeout: 30000
+- takeScreenshot: screenshots/trivense/add-expense-empty
+- tapOn: "Save Expense"
+- takeScreenshot: screenshots/trivense/add-expense-validation
+- tapOn: "Enter amount"
+- inputText: "999999999999"
+- tapOn: "Description (optional)"
+- inputText: "QA special chars ampersand slash apostrophe"
+- hideKeyboard
+- takeScreenshot: screenshots/trivense/add-expense-long-values
+- pressKey: BACK

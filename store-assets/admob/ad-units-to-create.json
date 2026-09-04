@@ -1,0 +1,35 @@
+{
+  "admobAppId": "5149530682",
+  "consoleUrl": "https://admob.google.com/v2/apps/5149530682/adunits/list",
+  "packageName": "com.trivense.app",
+  "adUnitsToCreate": [
+    {
+      "name": "Trivense Banner Home",
+      "format": "Banner",
+      "subtype": "Adaptive banner (recommended)",
+      "envAndroid": "EXPO_PUBLIC_ADMOB_ANDROID_BANNER",
+      "envIos": "EXPO_PUBLIC_ADMOB_IOS_BANNER"
+    },
+    {
+      "name": "Trivense Interstitial Expense",
+      "format": "Interstitial",
+      "subtype": "Standard interstitial",
+      "envAndroid": "EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL",
+      "envIos": "EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL"
+    },
+    {
+      "name": "Trivense App Open",
+      "format": "App open",
+      "subtype": "App open ad",
+      "envAndroid": "EXPO_PUBLIC_ADMOB_ANDROID_APP_OPEN",
+      "envIos": "EXPO_PUBLIC_ADMOB_IOS_APP_OPEN"
+    }
+  ],
+  "afterCreation": "Production Android units created 2026-06-27 — run npm run apply:admob-production to sync .env",
+  "productionAndroid": {
+    "appId": "ca-app-pub-4173581536398147~5149530682",
+    "banner": "ca-app-pub-4173581536398147/5347458345",
+    "interstitial": "ca-app-pub-4173581536398147/6514602727",
+    "appOpen": "ca-app-pub-4173581536398147/1509688055"
+  }
+}

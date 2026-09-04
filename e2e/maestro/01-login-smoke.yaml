@@ -1,0 +1,15 @@
+# TC-001: Login screen smoke + empty validation
+appId: com.trivense.app
+---
+- runFlow:
+    file: _bootstrap-guest.yaml
+- assertVisible: "Welcome back"
+- assertVisible: "Split expenses, made easy."
+- assertVisible: "Sign in"
+- assertVisible: "Continue with Google"
+- tapOn:
+    id: login-sign-in-button
+- extendedWaitUntil:
+    visible: "Email is required"
+    timeout: 10000
+- assertVisible: "Password is required"

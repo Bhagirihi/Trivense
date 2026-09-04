@@ -1,0 +1,55 @@
+{
+  "source": "https://play.google.com/store/apps/details?id=com.tribab.tricount.android",
+  "app": "tricount: Split & Settle Bills",
+  "developer": "bunq",
+  "role": "primary split/settle competitor",
+  "package": "com.tribab.tricount.android",
+  "downloaded_at": "2026-07-02",
+  "files": [
+    {
+      "file": "app_icon_512.png",
+      "url": "https://play-lh.googleusercontent.com/Kq7jbps7O52eqyv5FzEyxOP9WDeLmaNSfOSBA3yTFrXt2uznOExiKyrhrZfSvloZ6ol9z2l-lMzIuIjKa1adkUU=s512-rw",
+      "bytes": 9023
+    },
+    {
+      "file": "phone_screenshot_1.png",
+      "url": "https://play-lh.googleusercontent.com/Zm9g7I70mJATGdGlHBFMSKnp8zb8bPmtFhgyNWjZ5KQL9F6APYCc_RjLpVUoAsdn-QfiW5nBF-cyxKoqcK8fsc4=s0-rw",
+      "bytes": 904048
+    },
+    {
+      "file": "phone_screenshot_2.png",
+      "url": "https://play-lh.googleusercontent.com/F0qsIWIu9FmPlKqDSAhtkY0UaAjPDEtqYowRDBPT7QSXL9uUr-wTD5q_uG23kCcfkPU7qLh5h_lx4FqV64pm=s0-rw",
+      "bytes": 2580296
+    },
+    {
+      "file": "phone_screenshot_3.png",
+      "url": "https://play-lh.googleusercontent.com/uN0OwftpPGLn_tdBK7hzz2x35pm9Oh713Wd4qJnixm5X84qTTuZJ9PlKGyIQONmKyH6EB99i9JwVE9Ziblsg=s0-rw",
+      "bytes": 464105
+    },
+    {
+      "file": "phone_screenshot_4.png",
+      "url": "https://play-lh.googleusercontent.com/6oT_vSr3D6WfgQfGqpzEfw8vfAtdrbJXaaDL6APjPbZxrkHtbP3UfXu4J00RePBkAXTG2Xhft6obajCbSpl8Aw=s0-rw",
+      "bytes": 377660
+    },
+    {
+      "file": "phone_screenshot_5.png",
+      "url": "https://play-lh.googleusercontent.com/H02clBfuY1kSc2RuZiRQ0kggh6IBeAtY3FFA-FLTOgVuPlZwUWyzBWHJJ7CGYjCERd7sOWzeKLRl0YhL4Exq=s0-rw",
+      "bytes": 454856
+    },
+    {
+      "file": "phone_screenshot_6.png",
+      "url": "https://play-lh.googleusercontent.com/RRTyPn-OPdTSfV6qHL3Hk7JPvJjWBWq2LB-qnuguYuC1pSl51Ko_v54EBCDvKxjuDMV_Tz_jXqUjlJZeWlfydyw=s0-rw",
+      "bytes": 454219
+    },
+    {
+      "file": "phone_screenshot_7.png",
+      "url": "https://play-lh.googleusercontent.com/vr0DizNDeOxx17ZOyVCCMIa11kraiP3QhOQcU2u6bQQ2vF0jvshzw36Tw5azjUqzfScegNSDPnl1TdB7wYl_XQ=s0-rw",
+      "bytes": 349205
+    },
+    {
+      "file": "phone_screenshot_8.png",
+      "url": "https://play-lh.googleusercontent.com/lIvls8alboePC_YddlcsllDh_q71qXvgSjW8qd4Kkefbs7hKYwLR-Nf4aCfwOE_JyL7vE-U_CgpZUHQarsLRjg=s0-rw",
+      "bytes": 1082360
+    }
+  ]
+}

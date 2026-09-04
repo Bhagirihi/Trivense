@@ -1,0 +1,23 @@
+# Complete first-run onboarding if shown (pre-login).
+appId: com.trivense.app
+---
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "Track Your Travel Expenses"
+    commands:
+      - tapOn: "Skip"
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "Get Started"
+    commands:
+      - tapOn: "Get Started"
+      - waitForAnimationToEnd

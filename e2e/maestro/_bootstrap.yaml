@@ -1,0 +1,11 @@
+# Launch app (keeps session if logged in)
+appId: com.trivense.app
+---
+- launchApp:
+    clearState: false
+- runFlow:
+    file: _open-dev-client.yaml
+- runFlow:
+    file: _dismiss-expo-dev-menu.yaml
+- runFlow:
+    file: _complete-onboarding.yaml

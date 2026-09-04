@@ -1,0 +1,37 @@
+# Expo dev client: connect to Metro (skip if already in app UI)
+appId: com.trivense.app
+---
+- runFlow:
+    when:
+      visible:
+        id: screen-home
+    commands:
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "Welcome back"
+    commands:
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "http://10.0.2.2:8081"
+    commands:
+      - tapOn: "http://10.0.2.2:8081"
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "http://localhost:8081"
+    commands:
+      - tapOn: "http://localhost:8081"
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "DEVELOPMENT SERVERS"
+    commands:
+      - tapOn:
+          text: "8081"
+      - waitForAnimationToEnd

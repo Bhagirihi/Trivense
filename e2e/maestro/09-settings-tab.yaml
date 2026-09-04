@@ -1,0 +1,27 @@
+# TC-009: Settings tab
+appId: com.trivense.app
+---
+- runFlow:
+    file: _bootstrap.yaml
+- runFlow:
+    when:
+      visible:
+        id: screen-login
+    file: _login-qa.yaml
+- extendedWaitUntil:
+    visible:
+      id: screen-home
+    timeout: 90000
+- tapOn:
+    id: footer-tab-Settings
+- extendedWaitUntil:
+    visible:
+      id: screen-settings
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: settings-logout-button
+    direction: DOWN
+    timeout: 30000
+- assertVisible:
+    id: settings-logout-button

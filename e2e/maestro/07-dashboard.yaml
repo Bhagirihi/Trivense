@@ -1,0 +1,18 @@
+# TC-007: Dashboard / home content
+appId: com.trivense.app
+---
+- runFlow:
+    file: _bootstrap.yaml
+- runFlow:
+    when:
+      visible:
+        id: screen-login
+    file: _login-qa.yaml
+- extendedWaitUntil:
+    visible:
+      id: screen-home
+    timeout: 90000
+- tapOn:
+    id: footer-tab-Home
+- assertVisible:
+    id: screen-home

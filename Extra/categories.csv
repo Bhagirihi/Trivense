@@ -1,0 +1,9 @@
+id,name,icon,color,user_id
+385c3271-0347-413d-8c14-bbef81e85247,Groceries,cart,#FF6B6B,97d86741-0b79-4fef-98c5-480ebb21a963
+0986076d-1264-4680-9ac7-f8207b391af9,Transport,car,#4ECDC4,97d86741-0b79-4fef-98c5-480ebb21a963
+0d78c0f4-737c-4348-a803-d299e0860b02,Shopping,shopping,#45B7D1,97d86741-0b79-4fef-98c5-480ebb21a963
+99a83f65-f9f0-4e44-b224-14dd12b594c1,Entertainment,movie,#96CEB4,97d86741-0b79-4fef-98c5-480ebb21a963
+3b3911bf-1fa6-45ff-be27-f3701ac22072,Health,heart,#FFEEAD,97d86741-0b79-4fef-98c5-480ebb21a963
+d791defd-1c34-4e39-a995-36e82ac8ae40,Dining,food,#FFB347,97d86741-0b79-4fef-98c5-480ebb21a963
+cead7d0f-9acc-4d45-acb2-6d694aa6ea72,Utilities,home,#77DD77,97d86741-0b79-4fef-98c5-480ebb21a963
+7d286258-8de1-4d4f-8167-c6508512810f,Education,school,#AEC6CF,97d86741-0b79-4fef-98c5-480ebb21a963

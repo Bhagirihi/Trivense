@@ -1,0 +1,14 @@
+# Fresh session → login screen (guest flows)
+appId: com.trivense.app
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: _open-dev-client.yaml
+- runFlow:
+    file: _dismiss-expo-dev-menu.yaml
+- runFlow:
+    file: _complete-onboarding.yaml
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 120000

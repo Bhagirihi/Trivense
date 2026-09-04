@@ -1,0 +1,44 @@
+# Captures the primary authenticated surfaces on the current device profile.
+appId: com.trivense.app
+name: Trivense primary-screen visual regression
+tags:
+  - regression
+  - visual
+---
+- runFlow:
+    file: _bootstrap.yaml
+- runFlow:
+    when:
+      visible:
+        id: screen-login
+    file: _login-qa.yaml
+- extendedWaitUntil:
+    visible:
+      id: screen-home
+    timeout: 90000
+- takeScreenshot: screenshots/trivense/home
+- tapOn:
+    id: footer-tab-Analytics
+- extendedWaitUntil:
+    visible:
+      id: screen-analytics
+    timeout: 30000
+- takeScreenshot: screenshots/trivense/analytics
+- tapOn:
+    id: footer-tab-Settings
+- extendedWaitUntil:
+    visible:
+      id: screen-settings
+    timeout: 30000
+- takeScreenshot: screenshots/trivense/settings
+- scrollUntilVisible:
+    element:
+      text: "Profile"
+    direction: DOWN
+- tapOn: "Profile"
+- takeScreenshot: screenshots/trivense/profile
+- pressKey: BACK
+- tapOn:
+    id: footer-tab-Home
+- assertVisible:
+    id: screen-home

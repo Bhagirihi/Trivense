@@ -1,0 +1,11 @@
+# TC-006: QA login → home dashboard
+appId: com.trivense.app
+---
+- runFlow:
+    file: _bootstrap-guest.yaml
+- runFlow:
+    file: _login-qa.yaml
+- assertVisible:
+    id: screen-home
+- assertVisible:
+    id: footer-tab-Home

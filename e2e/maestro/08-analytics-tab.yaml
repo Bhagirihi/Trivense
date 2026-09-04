@@ -1,0 +1,22 @@
+# TC-008: Analytics tab
+appId: com.trivense.app
+---
+- runFlow:
+    file: _bootstrap.yaml
+- runFlow:
+    when:
+      visible:
+        id: screen-login
+    file: _login-qa.yaml
+- extendedWaitUntil:
+    visible:
+      id: screen-home
+    timeout: 90000
+- tapOn:
+    id: footer-tab-Analytics
+- extendedWaitUntil:
+    visible:
+      id: screen-analytics
+    timeout: 30000
+- assertVisible:
+    id: screen-analytics

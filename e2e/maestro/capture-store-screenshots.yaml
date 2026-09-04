@@ -1,0 +1,155 @@
+# Capture real app screenshots for Play Store listing (run with CAPTURE_DIR set)
+appId: com.trivense.app
+---
+- runFlow:
+    file: _bootstrap.yaml
+- runFlow:
+    when:
+      visible:
+        id: screen-login
+    file: _login-qa.yaml
+- extendedWaitUntil:
+    visible:
+      id: screen-home
+    timeout: 90000
+
+# Dismiss app cue / overlays if present
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- runFlow:
+    when:
+      visible: "Maybe later"
+    commands:
+      - tapOn: "Maybe later"
+
+- takeScreenshot: ${CAPTURE_DIR}/01-dashboard
+
+- tapOn:
+    id: footer-tab-Home
+- waitForAnimationToEnd
+- tapOn:
+    text: "Boards"
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Expense Boards"
+    commands:
+      - tapOn:
+          text: ".*[Bb]oard.*"
+          optional: true
+- extendedWaitUntil:
+    visible: "Expense Board"
+    timeout: 20000
+- takeScreenshot: ${CAPTURE_DIR}/02-expense-boards
+
+- tapOn:
+    text: "Europe"
+- runFlow:
+    when:
+      notVisible: "Add Expense"
+    commands:
+      - tapOn:
+          point: "50%,45%"
+- waitForAnimationToEnd
+- takeScreenshot: ${CAPTURE_DIR}/03-board-details
+
+- tapOn:
+    id: footer-tab-Analytics
+- extendedWaitUntil:
+    visible:
+      id: screen-analytics
+    timeout: 30000
+- takeScreenshot: ${CAPTURE_DIR}/04-analytics
+
+- tapOn:
+    id: footer-tab-Home
+- tapOn:
+    text: "Add Expense"
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Add Expense"
+    commands:
+      - tapOn:
+          text: ".*[Aa]dd.*"
+          optional: true
+- extendedWaitUntil:
+    visible: "Add Expense"
+    timeout: 20000
+    optional: true
+- takeScreenshot: ${CAPTURE_DIR}/05-add-expense
+
+- tapOn:
+    text: "Back"
+    optional: true
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- runFlow:
+    when:
+      visible:
+        id: footer-tab-Home
+    commands:
+      - tapOn:
+          id: footer-tab-Home
+
+- tapOn:
+    id: footer-tab-Profile
+- extendedWaitUntil:
+    visible:
+      id: screen-profile
+    timeout: 30000
+- takeScreenshot: ${CAPTURE_DIR}/06-profile
+
+- tapOn:
+    id: footer-tab-Settings
+- extendedWaitUntil:
+    visible:
+      id: screen-settings
+    timeout: 30000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: screen-settings
+    commands:
+      - tapOn:
+          id: footer-tab-Settings
+- takeScreenshot: ${CAPTURE_DIR}/07-settings
+
+- tapOn:
+    id: footer-tab-Home
+- tapOn:
+    text: "Analysis"
+    optional: true
+- runFlow:
+    when:
+      visible: "Settlements"
+    commands:
+      - takeScreenshot: ${CAPTURE_DIR}/08-settlements
+- runFlow:
+    when:
+      notVisible: "Settlements"
+    commands:
+      - tapOn:
+          text: "Categories"
+          optional: true
+      - takeScreenshot: ${CAPTURE_DIR}/08-categories
+
+- tapOn:
+    id: footer-tab-Home
+- swipe:
+    start: 50%, 80%
+    end: 50%, 20%
+    optional: true
+- takeScreenshot: ${CAPTURE_DIR}/09-home-scroll
