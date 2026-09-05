@@ -311,6 +311,14 @@ export default {
   loadingSettlements: "निपटान लोड हो रहा है...",
   loadingAnalysis: "निपटान लोड हो रहा है...",
   percentOfTotal: "कुल का {{percent}}%",
+  payViaUpi: "UPI से भुगतान करें",
+  shareWhoOwes: "कौन किसे देगा — शेयर करें",
+  upiIdPlaceholder: "UPI ID (name@okicici)",
+  upiIdMissingTitle: "UPI ID चाहिए",
+  upiIdMissingBody:
+    "{{name}} ने अभी UPI ID नहीं जोड़ी। प्रोफ़ाइल में जोड़ने को कहें, या WhatsApp पर शेयर करें।",
+  couldNotOpenUpi: "GPay या PhonePe नहीं खुला। राशि शेयर करें।",
+  failedToShareSettlements: "निपटान शेयर नहीं हो सका।",
 
   firstBoardTitle: "अपना पहला बोर्ड बनाएं",
   firstBoardSubtitle: "बोर्ड यात्रा, घर या किसी भी साझा खर्च को समूहित करते हैं। पहले बोर्ड बनाएं, फिर खर्च जोड़ें।",

@@ -34,6 +34,7 @@ export default {
           "Trivense can save exported expense files to your photo library.",
         NSLocationWhenInUseUsageDescription:
           "Trivense uses your location to improve travel boards and local currency defaults.",
+        LSApplicationQueriesSchemes: ["upi", "tez", "gpay", "phonepe", "whatsapp"],
       },
     },
     android: {

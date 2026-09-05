@@ -109,7 +109,7 @@ const checks = [
   {
     name: "Privacy & Terms pages",
     ok: fs.existsSync(path.join(ROOT, "website/src/app/privacy/page.tsx")),
-    detail: "Live: trivense.vercel.app · also trivenseapp.vercel.app · target custom domain trivense.app",
+    detail: "Live: trivense.vercel.app (set NEXT_PUBLIC_SITE_URL on Vercel)",
     url: "https://trivense.vercel.app/privacy",
   },
   {

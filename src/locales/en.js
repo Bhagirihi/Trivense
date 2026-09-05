@@ -320,6 +320,14 @@ export default {
   loadingSettlements: "Loading settlements...",
   loadingAnalysis: "Loading settlements...",
   percentOfTotal: "{{percent}}% of total",
+  payViaUpi: "Pay via UPI",
+  shareWhoOwes: "Share who owes whom",
+  upiIdPlaceholder: "UPI ID (name@okicici)",
+  upiIdMissingTitle: "UPI ID needed",
+  upiIdMissingBody:
+    "{{name}} has not added a UPI ID yet. Ask them to add it in Profile, or share this settle on WhatsApp.",
+  couldNotOpenUpi: "Could not open GPay or PhonePe. Share the amount instead.",
+  failedToShareSettlements: "Could not share settlements.",
 
   // Home — first board
   firstBoardTitle: "Create your first board",

@@ -115,7 +115,7 @@ export default function OpenGraphImage() {
         >
           <div style={{ display: "flex" }}>Android on Google Play</div>
           <div style={{ display: "flex", color: "#e8c547", fontWeight: 700 }}>
-            trivense.app
+            trivense.vercel.app
           </div>
         </div>
       </div>

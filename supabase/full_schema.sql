@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name TEXT,
   email_address TEXT,
   mobile TEXT,
+  upi_id TEXT,
   avatar_url TEXT,
   has_notifications BOOLEAN DEFAULT false,
   is2FA BOOLEAN DEFAULT false,

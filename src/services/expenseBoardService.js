@@ -117,6 +117,8 @@ export const expenseBoardService = {
           name: profile.full_name || profile.email_address || "Member",
           board_id: profile.board_id,
           email: profile.email_address,
+          upiId: profile.upi_id || null,
+          mobile: profile.mobile || null,
         });
       };
 
@@ -194,6 +196,9 @@ export const expenseBoardService = {
           settlements.push({
             from: debtor.name,
             to: creditor.name,
+            fromId: debtor.id,
+            toId: creditor.id,
+            toUpi: creditor.upiId || null,
             amount: Number(settleAmount.toFixed(2)),
           });
           amountToSettle -= settleAmount;

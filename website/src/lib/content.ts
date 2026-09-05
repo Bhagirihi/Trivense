@@ -2,7 +2,7 @@ export const site = {
   name: "Trivense",
   tagline: "Split expenses, made easy.",
   description:
-    "Trivense helps travelers and groups manage shared expenses with boards, real-time sync, analytics, and smart budgets — built for India and beyond.",
+    "Trivense is the Splitwise alternative for India: trip boards, who owes whom, and UPI settle — unlimited expenses on Free, no daily cap.",
   url: "https://trivense.vercel.app",
   supportEmail: "support@trivense.app",
   playStoreUrl:
@@ -12,8 +12,8 @@ export const site = {
 export const trustBadges = [
   "Real-time sync",
   "Group boards",
-  "INR & multi-currency",
-  "Encrypted in transit · RLS-backed",
+  "UPI settle · INR",
+  "No daily expense cap",
 ];
 
 export const features = [
@@ -42,9 +42,9 @@ export const features = [
     icon: "bell",
   },
   {
-    title: "Multi-currency",
+    title: "UPI settle",
     description:
-      "Track expenses in INR and other currencies with localized formatting.",
+      "Pay who you owe in GPay or PhonePe from the settlements screen — no leaving the app to copy amounts.",
     icon: "currency",
   },
   {
@@ -169,7 +169,11 @@ export const faqs = [
   },
   {
     q: "Can I use Trivense for free?",
-    a: "Yes. Free includes unlimited personal boards with ads, 1 shared board, settlements, analytics (week, month, year, and all-time), and up to three custom categories. Upgrade to Premium for an ad-free experience, unlimited sharing, export, and more categories.",
+    a: "Yes. Free includes unlimited personal boards with ads, unlimited expenses (no daily cap like Splitwise), 1 shared board, settlements with UPI pay, analytics, and up to three custom categories. Upgrade to Premium for an ad-free experience, unlimited sharing, export, and more categories.",
+  },
+  {
+    q: "Is Trivense a Splitwise alternative for India?",
+    a: "Yes. Splitwise now limits free users. Trivense is built for Indian groups: INR-first, UPI settle, WhatsApp-friendly who-owes-whom, and boards for trips or PGs — without a daily expense cap on Free.",
   },
   {
     q: "How do I join a shared board?",

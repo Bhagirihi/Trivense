@@ -9,6 +9,8 @@ import {
   Dimensions,
   Modal,
   RefreshControl,
+  Share,
+  Alert,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
@@ -25,12 +27,21 @@ import { useSubscription } from "../context/SubscriptionContext";
 import { FEATURES } from "../config/subscriptionPlans";
 import PaywallGate from "../components/PaywallGate";
 import PremiumFeatureAd from "../components/PremiumFeatureAd";
+import { buildBoardJoinUrl } from "../config/appLinks";
+import {
+  buildWhoOwesMessage,
+  isValidUpiId,
+  openUpiPayment,
+} from "../utils/upiSettle";
+import { useAuth } from "../context/AuthContext";
 const { width } = Dimensions.get("window");
 
 export const AnalysisScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { hasFeature } = useSubscription();
+  const { session } = useAuth();
+  const currentUserId = session?.user?.id;
   const boardId = route.params?.boardId;
   const [loading, setLoading] = useState(true);
   const [showTripSelector, setShowTripSelector] = useState(false);
@@ -136,6 +147,42 @@ export const AnalysisScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error("Error fetching analysis data:", error);
     }
+  };
+
+  const shareWhoOwes = async () => {
+    try {
+      const message = buildWhoOwesMessage({
+        boardName: selectedTrip?.name,
+        settlements: analysisData.settlements,
+        joinUrl: boardId ? buildBoardJoinUrl(boardId) : undefined,
+      });
+      await Share.share({ message });
+    } catch (error) {
+      if (error?.message !== "User did not share") {
+        Alert.alert(t("error"), t("failedToShareSettlements"));
+      }
+    }
+  };
+
+  const paySettlement = async (settlement) => {
+    const note = `Trivense ${selectedTrip?.name || "settle"}`;
+    if (isValidUpiId(settlement.toUpi)) {
+      try {
+        await openUpiPayment({
+          pa: settlement.toUpi,
+          pn: settlement.to,
+          amount: settlement.amount,
+          note,
+        });
+      } catch {
+        Alert.alert(t("error"), t("couldNotOpenUpi"));
+      }
+      return;
+    }
+    Alert.alert(t("upiIdMissingTitle"), t("upiIdMissingBody").replace("{{name}}", settlement.to), [
+      { text: t("cancel"), style: "cancel" },
+      { text: t("shareWhoOwes"), onPress: shareWhoOwes },
+    ]);
   };
 
   const renderTripSelector = () => {
@@ -388,14 +435,27 @@ export const AnalysisScreen = ({ navigation, route }) => {
             {t("whoNeedsToPayWhom")}
           </Text>
         </View>
-        <MaterialCommunityIcons
-          name="bank-transfer"
-          size={24}
-          color={theme.primary}
-        />
+        {analysisData.settlements.length > 0 ? (
+          <TouchableOpacity onPress={shareWhoOwes} hitSlop={8}>
+            <MaterialCommunityIcons
+              name="whatsapp"
+              size={24}
+              color={theme.primary}
+            />
+          </TouchableOpacity>
+        ) : (
+          <MaterialCommunityIcons
+            name="bank-transfer"
+            size={24}
+            color={theme.primary}
+          />
+        )}
       </View>
-      {analysisData.settlements.map((settlement, index) => (
+      {analysisData.settlements.map((settlement, index) => {
+        const isDebtor = currentUserId && settlement.fromId === currentUserId;
+        return (
         <View key={index} style={styles.settlementItem}>
+          <View style={styles.settlementRow}>
           <View style={styles.settlementContent}>
             <View style={styles.settlementFrom}>
               <View
@@ -449,8 +509,31 @@ export const AnalysisScreen = ({ navigation, route }) => {
               {formatCurrency(settlement.amount)}
             </Text>
           </View>
+          </View>
+          {isDebtor ? (
+            <TouchableOpacity
+              style={[styles.payUpiBtn, { backgroundColor: theme.primary }]}
+              onPress={() => paySettlement(settlement)}
+            >
+              <Text style={[styles.payUpiBtnText, { color: theme.white || "#fff" }]}>
+                {t("payViaUpi")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
-      ))}
+        );
+      })}
+      {analysisData.settlements.length > 0 ? (
+        <TouchableOpacity
+          style={[styles.shareSettlementsBtn, { borderColor: theme.primary }]}
+          onPress={shareWhoOwes}
+        >
+          <MaterialCommunityIcons name="whatsapp" size={18} color={theme.primary} />
+          <Text style={[styles.shareSettlementsBtnText, { color: theme.primary }]}>
+            {t("shareWhoOwes")}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
       {analysisData.settlements.length === 0 && (
         <View style={styles.emptySettlements}>
           <MaterialCommunityIcons
@@ -731,12 +814,40 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   settlementItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  settlementRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  payUpiBtn: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  payUpiBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  shareSettlementsBtn: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  shareSettlementsBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
   settlementContent: {
     flexDirection: "row",

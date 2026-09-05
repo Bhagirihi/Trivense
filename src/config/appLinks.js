@@ -1,4 +1,4 @@
-/** Canonical public website (Vercel). Use for all user-facing links. */
+/** Canonical public website. Use for all user-facing links. */
 export const WEBSITE_URL = "https://trivense.vercel.app";
 
 export const LEGAL_LINKS = {

@@ -65,6 +65,7 @@ export const ProfileScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editFullName, setEditFullName] = useState("");
   const [editMobile, setEditMobile] = useState("");
+  const [editUpiId, setEditUpiId] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalCategories, setTotalCategories] = useState(0);
@@ -137,6 +138,7 @@ export const ProfileScreen = ({ navigation }) => {
     if (!isEditing) {
       setEditFullName(userProfile?.full_name ?? "");
       setEditMobile(userProfile?.mobile ?? "");
+      setEditUpiId(userProfile?.upi_id ?? "");
     }
     setIsEditing(!isEditing);
   };
@@ -147,6 +149,7 @@ export const ProfileScreen = ({ navigation }) => {
       const { profile, error } = await userService.updateProfile({
         full_name: editFullName.trim() || null,
         mobile: editMobile.trim() || null,
+        upi_id: editUpiId.trim().toLowerCase() || null,
       });
       if (error) throw error;
       setUserProfile(profile);
@@ -308,6 +311,22 @@ export const ProfileScreen = ({ navigation }) => {
             placeholderTextColor={theme.textMuted}
             keyboardType="phone-pad"
           />
+          <TextInput
+            style={[
+              styles.editInput,
+              {
+                color: theme.text,
+                borderColor: theme.border,
+                backgroundColor: theme.inputBackground,
+              },
+            ]}
+            value={editUpiId}
+            onChangeText={setEditUpiId}
+            placeholder={t("upiIdPlaceholder")}
+            placeholderTextColor={theme.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
           <View style={styles.editActions}>
             <TouchableOpacity
               style={[styles.editBtn, { backgroundColor: theme.borderLight }]}
@@ -343,6 +362,11 @@ export const ProfileScreen = ({ navigation }) => {
           {userProfile?.mobile ? (
             <Text style={[styles.metaText, { color: theme.textMuted }]}>
               {userProfile.mobile}
+            </Text>
+          ) : null}
+          {userProfile?.upi_id ? (
+            <Text style={[styles.metaText, { color: theme.textMuted }]}>
+              {userProfile.upi_id}
             </Text>
           ) : null}
           <View
