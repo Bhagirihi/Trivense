@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ADS_POLICY_PATH, FREE_PLAN_ADS_FEATURE, planFeatures, site } from "@/lib/content";
+import { ADS_POLICY_PATH, FREE_PLAN_ADS_FEATURE, planFeatures, plans, site } from "@/lib/content";
 import type { PricingPayload } from "@/lib/pricing";
 
 const COUNTRY_OPTIONS = [
@@ -56,8 +56,9 @@ export function Pricing() {
           name: "Free",
           price: pricing.free.formatted,
           period: pricing.free.period,
-          description:
-            "Unlimited boards with ads — 1 shared board, settlements, and 3 categories.",
+          // Free description comes from lib/content plans[0] — do not
+          // hardcode a second copy here, or the two will drift again.
+          description: plans[0].description,
           features: planFeatures.free,
           cta: "Get the app",
           highlighted: false,

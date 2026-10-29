@@ -47,6 +47,15 @@ export const PLAN_CATALOG = {
   },
 };
 
+// SINGLE SOURCE OF TRUTH — Free plan (must match README.md, the Play
+// listing in store-assets/play/LISTING_EN.md, and website/src/lib/content.ts):
+//   unlimited personal boards, 1 shared board, settlements included,
+//   analytics for week/month/year/all, up to 3 custom categories, ads.
+// BOARD_SHARING here means UNLIMITED sharing (Premium only). Free sharing
+// is NOT zero — it is capped at maxSharedBoards: 1, enforced by
+// subscriptionService.canShareBoardWithLimit / canJoinSharedBoard. Do not
+// gate "any sharing" on hasFeature(BOARD_SHARING) alone; that is what made
+// the Settings sharing row look locked for Free users who can share 1 board.
 export const PLAN_LIMITS = {
   [PLANS.FREE]: {
     maxBoards: null,

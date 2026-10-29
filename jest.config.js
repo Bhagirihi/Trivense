@@ -3,7 +3,10 @@ module.exports = {
   preset: "jest-expo",
   setupFiles: ["<rootDir>/tests/setup-rn-mocks.js"],
   setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
-  testMatch: ["<rootDir>/tests/ui/**/*.test.js"],
+  testMatch: [
+    "<rootDir>/tests/ui/**/*.test.js",
+    "<rootDir>/tests/unit/**/*.test.js",
+  ],
   testPathIgnorePatterns: ["/node_modules/", "/android/", "/ios/"],
   collectCoverageFrom: [
     "src/**/*.{js,jsx}",
