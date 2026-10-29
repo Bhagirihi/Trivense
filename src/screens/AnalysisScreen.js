@@ -36,6 +36,9 @@ import {
 import { useAuth } from "../context/AuthContext";
 const { width } = Dimensions.get("window");
 
+// Per-BOARD analysis: who paid, who owes whom, and settlements for ONE
+// board (via expenseBoardService.getExpenseBoardsByID). Not a duplicate of
+// AnalyticsScreen, which is GLOBAL trends across all boards/periods.
 export const AnalysisScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();

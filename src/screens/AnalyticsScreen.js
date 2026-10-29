@@ -47,6 +47,9 @@ const TIME_PERIODS = [
   { id: "all", icon: "calendar-clock", days: null },
 ];
 
+// GLOBAL analytics: spending trends, categories and period comparisons
+// across all boards (via analyticsService.fetchExpenseTrends). Not a
+// duplicate of AnalysisScreen, which is per-board settlements.
 export const AnalyticsScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
