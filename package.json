@@ -26,6 +26,7 @@
     "qa:preflight": "node scripts/qa-preflight.js",
     "test": "jest",
     "test:ui": "jest tests/ui --runInBand",
+    "test:unit": "jest tests/unit --runInBand",
     "test:e2e": "bash scripts/run-device-qa.sh smoke",
     "test:e2e:guest": "bash scripts/run-device-qa.sh guest",
     "test:e2e:auth": "bash scripts/run-device-qa.sh auth",

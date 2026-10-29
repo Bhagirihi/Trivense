@@ -5,6 +5,7 @@ import {
   getExpenseCountsByBoard,
   invalidateBoardCache,
 } from "./boardAccessService";
+import { computeBoardSettlements } from "../utils/settlements";
 
 export { invalidateBoardCache };
 
@@ -138,14 +139,8 @@ export const expenseBoardService = {
         });
       }
 
-      const userExpenseMap = {};
-      (expensesRes.data || []).forEach((expense) => {
-        if (!userExpenseMap[expense.created_by]) {
-          userExpenseMap[expense.created_by] = 0;
-        }
-        userExpenseMap[expense.created_by] += expense.amount;
-      });
-
+      // Fail before using any query result: the old code summed expenses
+      // first and only checked errors afterwards.
       if (expensesRes.error || boardRes.error || sharedUsersRes.error) {
         throw expensesRes.error || boardRes.error || sharedUsersRes.error;
       }
@@ -155,63 +150,24 @@ export const expenseBoardService = {
 
       if (!board) return [];
 
-      const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-      const perPersonBudget = totalExpenses / boardUsers.length;
-
-      // 3. Map to boardUsers with percentage
-      const boardUsersWithStats = boardUsers.map((user) => {
-        const userTotal = userExpenseMap[user.id] || 0;
-        const percent =
-          totalExpenses > 0
-            ? ((userTotal / totalExpenses) * 100).toFixed(2)
-            : "0.00";
-
-        return {
-          ...user,
-          spent: userTotal,
-          percentage: percent,
-        };
-      });
-
-      const fairShare = totalExpenses / boardUsersWithStats.length;
-      const creditors = [];
-      const debtors = [];
-
-      boardUsersWithStats.forEach((member) => {
-        const difference = member.spent - fairShare;
-        if (difference > 0) {
-          creditors.push({ ...member, amount: difference });
-        } else if (difference < 0) {
-          debtors.push({ ...member, amount: -difference });
-        }
-      });
-
-      const settlements = [];
-      for (const debtor of debtors) {
-        let amountToSettle = debtor.amount;
-        for (const creditor of creditors) {
-          if (amountToSettle === 0) break;
-          if (creditor.amount === 0) continue;
-          const settleAmount = Math.min(amountToSettle, creditor.amount);
-          settlements.push({
-            from: debtor.name,
-            to: creditor.name,
-            fromId: debtor.id,
-            toId: creditor.id,
-            toUpi: creditor.upiId || null,
-            amount: Number(settleAmount.toFixed(2)),
-          });
-          amountToSettle -= settleAmount;
-          creditor.amount -= settleAmount;
-        }
-      }
+      // Money math lives in src/utils/settlements.js (integer paise, so
+      // settlements always sum exactly to what debtors owe). The shape
+      // returned here is unchanged, apart from additive amountPaise /
+      // spentPaise / fairShare fields on the same objects.
+      const { totalExpenses, participants, settlements } =
+        computeBoardSettlements({
+          members: boardUsers,
+          expenses,
+        });
+      const perPersonBudget =
+        participants.length > 0 ? totalExpenses / participants.length : 0;
 
       return {
         totalBudget: board.total_budget,
-        perPersonBudget: perPersonBudget || "0", // fallback
+        perPersonBudget,
         totalExpenses,
-        participants: boardUsersWithStats || [],
-        settlements: settlements || [],
+        participants,
+        settlements,
       };
     } catch (error) {
       console.error("Error fetching board by ID:", error.message);
