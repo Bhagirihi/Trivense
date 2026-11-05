@@ -1,15 +1,18 @@
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { typography, spacing, radii } from "../../theme/tokens";
 
 // Settings screen styles, extracted verbatim from SettingsScreen.js
 // (2,216 lines -> split so the screen file holds logic, not layout).
-// Note: a few entries keep function-valued colours, e.g.
-// borderColor: (theme) => theme.borderLight. Those were already in the
-// original StyleSheet; React Native ignores function values there, so
-// this extraction deliberately does not change them — fixing them is a
-// separate visual bug, not a refactor.
+//
+// Theme-dependent colours are real values now, not function values:
+// the original StyleSheet held function-valued colours, which React
+// Native silently ignores, so those borders rendered in the default
+// colour. Styles are built per theme via createSettingsStyles(theme) —
+// call sites already have `theme` from useTheme() / props, so light
+// and dark both render correctly.
 
-export const styles = StyleSheet.create({
+export function createSettingsStyles(theme) {
+  return StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -186,7 +189,7 @@ export const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: (theme) => theme.borderLight,
+    borderColor: theme.borderLight,
     fontSize: 16,
   },
   boardSelector: {
@@ -274,7 +277,7 @@ export const styles = StyleSheet.create({
     // marginBottom: 20,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: (theme) => `${theme.text}08`,
+    backgroundColor: `${theme.text}08`,
   },
   boardDetailHeader: {
     flexDirection: "row",
@@ -405,7 +408,7 @@ export const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: (theme) => theme.borderLight,
+    borderColor: theme.borderLight,
   },
   dropdownText: {
     fontSize: 16,
@@ -418,14 +421,14 @@ export const styles = StyleSheet.create({
     right: 0,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: (theme) => theme.borderLight,
+    borderColor: theme.borderLight,
     maxHeight: 200,
     overflow: "scroll",
   },
   dropdownItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: (theme) => theme.borderLight,
+    borderBottomColor: theme.borderLight,
   },
   dropdownItemText: {
     fontSize: 16,
@@ -440,7 +443,7 @@ export const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: (theme) => theme.borderLight,
+    borderColor: theme.borderLight,
   },
   amountInput: {
     flex: 1,
@@ -483,4 +486,5 @@ export const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 32,
   },
-});
+  });
+}

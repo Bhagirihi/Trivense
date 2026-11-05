@@ -78,7 +78,7 @@ describe("settlements money math (integer paise)", () => {
       ],
     });
     // Total 600, fair 150 each: Chetan and Deep each owe 150.
-    expect(result.settlements.map((s) => s.amount).sort()).toEqual([
+    expect(result.settlements.map((s) => s.amount).sort((a, b) => a - b)).toEqual([
       50, 100, 150,
     ]);
     const settled = result.settlements.reduce((s, x) => s + x.amountPaise, 0);
