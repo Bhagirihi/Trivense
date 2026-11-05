@@ -159,7 +159,6 @@ export default {
   categories: "श्रेणियाँ",
   recentTransactions: "हाल के लेनदेन",
   recentTransactionsSubtitle: "विवरण के लिए खर्च पर टैप करें",
-  welcomeBack: "वापस स्वागत है,",
   greetingMorning: "सुप्रभात!",
   greetingAfternoon: "नमस्कार!",
   greetingEvening: "शुभ संध्या!",
