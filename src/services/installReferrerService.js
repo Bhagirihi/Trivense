@@ -19,6 +19,9 @@ export async function capturePlayStoreReferrerInvite() {
   }
 
   try {
+    // Optional native module, deliberately not a dependency: Expo Go /
+    // dev builds do not include it, and the catch below handles that.
+    // eslint-disable-next-line import/no-unresolved
     const module = await import("react-native-play-install-referrer");
     const PlayInstallReferrer = module.default || module;
 

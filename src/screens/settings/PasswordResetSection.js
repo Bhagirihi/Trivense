@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { styles } from "./settingsStyles";
+import { createSettingsStyles } from "./settingsStyles";
 
 // Password-reset modal content, extracted from SettingsScreen.js so the
 // screen file holds navigation/state instead of 90 lines of form JSX.
@@ -22,6 +22,7 @@ export function PasswordResetSection({
   onReset,
   loading,
 }) {
+  const styles = useMemo(() => createSettingsStyles(theme), [theme]);
   return (
   <View
     style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}
