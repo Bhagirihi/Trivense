@@ -1,11 +1,48 @@
 import "dotenv/config";
 
-const admobAndroidAppId =
-  process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID ||
-  "ca-app-pub-3940256099942544~3347511713";
+// Production builds must ship the real AdMob app IDs: falling back to
+// Google's test IDs silently serves test ads to real users. Dev / Expo Go
+// builds keep the test IDs so local work needs no AdMob setup.
+const isProductionBuild =
+  process.env.EAS_BUILD_PROFILE === "production" ||
+  process.env.APP_ENV === "production";
+
+function admobAppId(value, name, testId) {
+  if (value) return value;
+  if (isProductionBuild) {
+    throw new Error(
+      `Missing ${name} for a production build. Set it in EAS env ` +
+        `(eas env:create --environment production --name ${name}) or .env. ` +
+        `Refusing to ship Google test ad IDs to real users.`,
+    );
+  }
+  console.warn(
+    `[app.config] ${name} is not set; using Google test ad ID for local dev only.`,
+  );
+  return testId;
+}
+
+// Real Android ID lives in EAS production env (see
+// scripts/apply-admob-production.js); verified present 2026-11-05.
+const admobAndroidAppId = admobAppId(
+  process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID,
+  "EXPO_PUBLIC_ADMOB_ANDROID_APP_ID",
+  "ca-app-pub-3940256099942544~3347511713",
+);
+// iOS is not registered in AdMob yet (no production ID exists and none is
+// in EAS env), so a missing iOS ID only warns even on production builds.
+// Register com.trivense.app in AdMob, then set EXPO_PUBLIC_ADMOB_IOS_APP_ID.
 const admobIosAppId =
   process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID ||
   "ca-app-pub-3940256099942544~1458002511";
+if (!process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID) {
+  console.warn(
+    "[app.config] EXPO_PUBLIC_ADMOB_IOS_APP_ID is not set; using Google test ad ID. iOS is not registered in AdMob yet.",
+  );
+}
+// Sentry org "rasoi-app" is correct, not a leftover: it is the shared
+// Sentry org (team trivense, project trivense-mobile), per
+// scripts/setup-sentry-trivense.js.
 const sentryOrg = process.env.SENTRY_ORG || "rasoi-app";
 const sentryProject = process.env.SENTRY_PROJECT || "trivense-mobile";
 
@@ -13,7 +50,7 @@ export default {
   expo: {
     name: "Trivense",
     slug: "Trivense",
-    version: "1.0.0",
+    version: "1.0.1",
     scheme: "trivense",
     orientation: "portrait",
     icon: "./assets/icon.png",

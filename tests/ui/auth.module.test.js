@@ -82,10 +82,12 @@ describe("Auth module UI", () => {
     });
 
     it("validates required fields on submit", () => {
-      const { getAllByText, getByText } = renderWithTheme(
+      // Register is a 2-step flow: step 1 ("Continue") validates name/email.
+      // The "Create account" submit button only exists on step 2.
+      const { getByTestId, getByText } = renderWithTheme(
         <RegisterScreen navigation={mockNavigation} />
       );
-      fireEvent.press(getAllByText("Create account")[1]);
+      fireEvent.press(getByTestId("register-continue-button"));
       expect(getByText("Full name is required")).toBeTruthy();
       expect(getByText("Email is required")).toBeTruthy();
     });
