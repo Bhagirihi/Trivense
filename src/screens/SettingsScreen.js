@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   ScrollView,
   Text,
   TouchableOpacity,
   Switch,
-  Platform,
   TextInput,
   Modal,
   FlatList,
@@ -48,11 +47,12 @@ import { copyToClipboard } from "../utils/clipboard";
 import { LEGAL_LINKS, buildReferralShareUrl } from "../config/appLinks";
 import { referralService } from "../services/referralService";
 import BrandLogo from "../components/BrandLogo";
-import { styles } from "./settings/settingsStyles";
+import { createSettingsStyles } from "./settings/settingsStyles";
 import { PasswordResetSection } from "./settings/PasswordResetSection";
 
 export const SettingsScreen = ({ navigation }) => {
   const { theme } = useTheme();
+  const styles = useMemo(() => createSettingsStyles(theme), [theme]);
   const { t } = useTranslation();
   const { openFeatureLock, featureLockModal } = useFeatureLockModal(navigation);
   const scrollBottomPadding = useFooterScrollPadding();
