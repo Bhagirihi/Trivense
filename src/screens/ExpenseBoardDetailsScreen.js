@@ -7,12 +7,11 @@ import {
   TouchableOpacity,  ScrollView,
   ActivityIndicator,
   RefreshControl,
-  Platform,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { ScreenActionBar } from "../components/ui/ScreenActionBar";
 import ShareModal from "../components/ShareModal";
@@ -59,7 +58,7 @@ export const ExpenseBoardDetailsScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [expenses, setExpenses] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
+  const [, setTotalCount] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareCode, setShareCode] = useState("");
   const [isBoardOwner, setIsBoardOwner] = useState(false);
@@ -74,7 +73,7 @@ export const ExpenseBoardDetailsScreen = () => {
     });
   }, [expenses, isAdFree, showBannerAds]);
 
-  const fetchData = async (pageNum = 1, isRefreshing = false) => {
+  const fetchData = React.useCallback(async (pageNum = 1, isRefreshing = false) => {
     try {
       if (isRefreshing) {
         setRefreshing(true);
@@ -109,11 +108,11 @@ export const ExpenseBoardDetailsScreen = () => {
       setRefreshing(false);
       setLoadingMore(false);
     }
-  };
+  }, [boardId]);
 
   useEffect(() => {
     fetchData();
-  }, [boardId]);
+  }, [fetchData]);
 
   useEffect(() => {
     const unsubscribe = realTimeSync.subscribeToExpense(
@@ -121,7 +120,7 @@ export const ExpenseBoardDetailsScreen = () => {
       "realtime-expenses-board-details"
     );
     return unsubscribe;
-  }, [boardId]);
+  }, [fetchData]);
 
   useEffect(() => {
     const loadBoardMeta = async () => {
@@ -149,7 +148,7 @@ export const ExpenseBoardDetailsScreen = () => {
 
   const onRefresh = React.useCallback(() => {
     fetchData(1, true);
-  }, []);
+  }, [fetchData]);
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {

@@ -19,10 +19,9 @@ import {
   isAdListItem,
 } from "../utils/listWithAds";
 import { LIST_AD_INTERVAL_TRANSACTIONS } from "../config/admob";
-import { radii, spacing, typography } from "../theme/tokens";
+import { spacing, typography } from "../theme/tokens";
 
-const ExpenseList = memo(
-  ({
+const ExpenseList = memo(function ExpenseList({
     expenses,
     onExpensePress,
     title,
@@ -38,7 +37,7 @@ const ExpenseList = memo(
     showInlineAds = false,
     inlineAdMode = "interval",
     inlineAdInterval = LIST_AD_INTERVAL_TRANSACTIONS,
-  }) => {
+  }) {
     const { theme } = useTheme();
     const { t } = useTranslation();
     const { isAdFree } = useAdEntitlement();
@@ -155,7 +154,7 @@ const ExpenseList = memo(
         theme.text,
         theme.primary,
         theme.textSecondary,
-        theme.card,
+        theme.cardBackground,
         theme.white,
         compact,
       ]

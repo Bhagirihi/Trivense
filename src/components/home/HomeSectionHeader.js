@@ -4,8 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { spacing, typography } from "../../theme/tokens";
 
-export const HomeSectionHeader = memo(
-  ({ title, subtitle, icon, iconColor, trailing, style }) => {
+export const HomeSectionHeader = memo(function HomeSectionHeader({ title, subtitle, icon, iconColor, trailing, style }) {
     const { theme } = useTheme();
 
     return (

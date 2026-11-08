@@ -5,13 +5,12 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { notificationService } from "../services/notificationService";
@@ -103,7 +102,7 @@ export const NotificationScreen = ({ navigation }) => {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
-    } catch (error) {
+    } catch (_error) {
       showToast.error("Failed to mark notification as read");
     }
   };
@@ -112,7 +111,7 @@ export const NotificationScreen = ({ navigation }) => {
     try {
       await notificationService.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    } catch (error) {
+    } catch (_error) {
       showToast.error("Failed to mark all notifications as read");
     }
   };

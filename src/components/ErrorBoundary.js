@@ -110,7 +110,7 @@ export class ErrorBoundary extends React.Component {
 
               <Text style={styles.title}>Something went wrong</Text>
               <Text style={styles.message}>
-                Don't worry — your work is safe. Tap Retry to pick up where you left off.
+                Don&apos;t worry — your work is safe. Tap Retry to pick up where you left off.
               </Text>
 
               {this.state.reportSent ? (

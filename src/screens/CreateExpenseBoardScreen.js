@@ -7,11 +7,10 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Share,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { expenseBoardService } from "../services/expenseBoardService";
 import FormInput from "../components/common/FormInput";
@@ -21,13 +20,11 @@ import ShareModal from "../components/ShareModal";
 import Card from "../components/common/Card";
 import { SectionLabel } from "../components/ui/UIKit";
 import { showToast } from "../utils/toast";
-import { copyToClipboard } from "../utils/clipboard";
 import { formatNumber, getCurrencySymbol } from "../utils/formatters";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { sendCreateExpenseBoardNotification } from "../services/pushNotificationService";
 import { useTranslation } from "../hooks/useTranslation";
 import { useAdEntitlement } from "../hooks/useAdEntitlement";
-import { buildBoardJoinUrl } from "../config/appLinks";
 import { supabase } from "../config/supabase";
 import {
   showInterstitialAfterBoardCreate,
@@ -139,7 +136,6 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
   const [description, setDescription] = useState("");
   const [perPersonBudget, setPerPersonBudget] = useState("");
   const [shareCode, setShareCode] = useState("");
-  const [inviteLink, setinviteLink] = useState("");
   const [errors, setErrors] = useState({});
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -175,37 +171,8 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
     setShowShareModal(true);
   };
 
-  const handleCopyCode = () => {
-    const code = shareCode || generateShareCode();
-    copyToClipboard(code);
-    showToast.success("Success", "Board code copied to clipboard");
-  };
 
-  const handleShareViaEmail = async () => {
-    try {
-      const code = shareCode || generateShareCode();
-      const subject = `Join my expense board: ${boardName}`;
-      const message = `Join my expense board "${boardName}" on Trivense!\n\nBoard Code: ${code}\n\nClick here to join: ${buildBoardJoinUrl(code)}`;
-      await Share.share({
-        message,
-        subject,
-      });
-    } catch (error) {
-      console.error("Error sharing via email:", error);
-    }
-  };
 
-  const handleShareViaSocial = async () => {
-    try {
-      const code = shareCode || generateShareCode();
-      const message = `Join my expense board "${boardName}" on Trivense!\n\nBoard Code: ${code}\n\nClick here to join: ${buildBoardJoinUrl(code)}`;
-      await Share.share({
-        message,
-      });
-    } catch (error) {
-      console.error("Error sharing via social:", error);
-    }
-  };
 
   const handleCreateBoard = async () => {
     if (!validateForm()) return;

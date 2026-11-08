@@ -3,6 +3,7 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 import { supabase } from "../config/supabase";
 import { formatCurrency } from "../utils/formatters";
+import { devLog } from "../utils/logger";
 
 export async function registerForPushNotificationsAsync({
   requestPermission = true,
@@ -139,7 +140,7 @@ export async function sendNotification(payloadOrType, titleArg, messageArg, trip
 
 export function handleForegroundNotifications() {
   Notifications.addNotificationReceivedListener((notification) => {
-    console.log("Notification received in foreground:", notification);
+    devLog("Notification received in foreground:", notification);
   });
 }
 

@@ -8,9 +8,9 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import BrandLogo from "../components/BrandLogo";
+import { BrandLogo } from "../components/BrandLogo";
 import FormButton from "../components/common/FormButton";
-import LegalDocModal from "../components/ui/LegalDocModal";
+import { LegalDocModal } from "../components/ui/LegalDocModal";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";

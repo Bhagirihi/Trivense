@@ -7,14 +7,13 @@ import {
   TouchableOpacity,  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Modal,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker, { useDefaultStyles } from "react-native-ui-datepicker";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { CategoryList } from "../components/CategoryList";
 import { ExpenseBoardList } from "../components/ExpenseBoardList";
 import FormInput from "../components/common/FormInput";
@@ -25,7 +24,6 @@ import { supabase } from "../config/supabase";
 import { showToast, showNetworkAwareError } from "../utils/toast";
 import { sendCreateExpenseNotification } from "../services/pushNotificationService";
 import { useTranslation } from "../hooks/useTranslation";
-import { useAppSettings } from "../context/AppSettingsContext";
 import { useAdEntitlement } from "../hooks/useAdEntitlement";
 import {
   registerExpenseSaveForAd,
@@ -60,7 +58,6 @@ const paymentMethodKeys = {
 
 export const AddExpenseScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
-  const { currency } = useAppSettings();
   const { t } = useTranslation();
   const { isAdFree } = useAdEntitlement();
   const editingExpense = route.params?.expense;

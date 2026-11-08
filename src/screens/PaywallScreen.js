@@ -12,12 +12,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useSubscription } from "../context/SubscriptionContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { useTranslation } from "../hooks/useTranslation";
 import { showToast } from "../utils/toast";
 import {
-  FEATURES,
   PAYWALL_FEATURE_LIST,
   PLAN_CATALOG,
   PLANS,

@@ -32,35 +32,67 @@ const TEST = {
 
 const platform = Platform.OS === "ios" ? "ios" : "android";
 
-function env(key) {
-  const value = process.env[key];
-  if (!value || String(value).trim().startsWith("@EXPO_PUBLIC_")) return null;
-  return value && String(value).trim() ? String(value).trim() : null;
+// Metro / babel-preset-expo only inlines STATIC `process.env.EXPO_PUBLIC_X`
+// dot-notation reads into the JS bundle (via the expo/virtual/env module).
+// The previous `env(key)` helper used dynamic key access — indexing
+// `process.env` by a variable — which is NOT inlined: in production Hermes
+// bundles `process.env` is an empty object, so every lookup returned
+// undefined and all ad units silently fell back to Google test IDs even
+// with the real IDs in EAS env. Every env var below MUST be read with its
+// own literal dot-notation line. Do not reintroduce a helper that takes
+// the key name.
+function clean(value) {
+  if (!value) return null;
+  const trimmed = String(value).trim();
+  if (!trimmed || trimmed.startsWith("@EXPO_PUBLIC_")) return null;
+  return trimmed;
+}
+
+// A unit with no real ID resolves to null in production (never a test ID):
+// showing Google test ads to real users is worse than showing no ad.
+// In dev, the test IDs keep local work going with no AdMob setup.
+function resolveUnit(realValue, testValue) {
+  const real = clean(realValue);
+  if (real) return real;
+  return __DEV__ ? testValue : null;
 }
 
 export const ADMOB_APP_IDS = {
-  android: env("EXPO_PUBLIC_ADMOB_ANDROID_APP_ID") ?? TEST.android.appId,
-  ios: env("EXPO_PUBLIC_ADMOB_IOS_APP_ID") ?? TEST.ios.appId,
+  android: resolveUnit(
+    process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID,
+    TEST.android.appId,
+  ),
+  ios: resolveUnit(
+    process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID,
+    TEST.ios.appId,
+  ),
 };
 
 export const ADMOB_UNITS = {
-  banner:
-    (platform === "ios"
-      ? env("EXPO_PUBLIC_ADMOB_IOS_BANNER")
-      : env("EXPO_PUBLIC_ADMOB_ANDROID_BANNER")) ?? TEST[platform].banner,
-  interstitial:
-    (platform === "ios"
-      ? env("EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL")
-      : env("EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL")) ??
+  banner: resolveUnit(
+    platform === "ios"
+      ? process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER
+      : process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER,
+    TEST[platform].banner,
+  ),
+  interstitial: resolveUnit(
+    platform === "ios"
+      ? process.env.EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL
+      : process.env.EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL,
     TEST[platform].interstitial,
-  appOpen:
-    (platform === "ios"
-      ? env("EXPO_PUBLIC_ADMOB_IOS_APP_OPEN")
-      : env("EXPO_PUBLIC_ADMOB_ANDROID_APP_OPEN")) ?? TEST[platform].appOpen,
-  rewarded:
-    (platform === "ios"
-      ? env("EXPO_PUBLIC_ADMOB_IOS_REWARDED")
-      : env("EXPO_PUBLIC_ADMOB_ANDROID_REWARDED")) ?? TEST[platform].rewarded,
+  ),
+  appOpen: resolveUnit(
+    platform === "ios"
+      ? process.env.EXPO_PUBLIC_ADMOB_IOS_APP_OPEN
+      : process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_OPEN,
+    TEST[platform].appOpen,
+  ),
+  rewarded: resolveUnit(
+    platform === "ios"
+      ? process.env.EXPO_PUBLIC_ADMOB_IOS_REWARDED
+      : process.env.EXPO_PUBLIC_ADMOB_ANDROID_REWARDED,
+    TEST[platform].rewarded,
+  ),
 };
 
 /** Optional placement-specific banner units (fallback to ADMOB_UNITS.banner). */
@@ -68,16 +100,22 @@ export function getBannerUnitId(placement = "default") {
   const ios = platform === "ios";
   if (placement === "footer") {
     return (
-      (ios
-        ? env("EXPO_PUBLIC_ADMOB_IOS_BANNER_FOOTER")
-        : env("EXPO_PUBLIC_ADMOB_ANDROID_BANNER_FOOTER")) ?? ADMOB_UNITS.banner
+      resolveUnit(
+        ios
+          ? process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_FOOTER
+          : process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_FOOTER,
+        TEST[platform].banner,
+      ) ?? ADMOB_UNITS.banner
     );
   }
   if (placement === "inline") {
     return (
-      (ios
-        ? env("EXPO_PUBLIC_ADMOB_IOS_BANNER_INLINE")
-        : env("EXPO_PUBLIC_ADMOB_ANDROID_BANNER_INLINE")) ?? ADMOB_UNITS.banner
+      resolveUnit(
+        ios
+          ? process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_INLINE
+          : process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_INLINE,
+        TEST[platform].banner,
+      ) ?? ADMOB_UNITS.banner
     );
   }
   return ADMOB_UNITS.banner;

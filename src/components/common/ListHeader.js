@@ -3,8 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { radii, spacing, typography } from "../../theme/tokens";
 
-const ListHeader = memo(
-  ({
+const ListHeader = memo(function ListHeader({
     title,
     subtitle,
     action,
@@ -15,7 +14,7 @@ const ListHeader = memo(
     actionStyle,
     actionTextStyle,
     ...props
-  }) => {
+  }) {
     const { theme } = useTheme();
 
     const styles = useMemo(
@@ -57,7 +56,7 @@ const ListHeader = memo(
             ...actionTextStyle,
           },
         }),
-      [theme]
+      [theme, actionStyle, actionTextStyle, style, subtitleStyle, titleStyle]
     );
 
     return (

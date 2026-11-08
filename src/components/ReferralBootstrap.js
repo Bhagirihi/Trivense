@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useSubscription } from "../context/SubscriptionContext";
 import { referralService } from "../services/referralService";
@@ -39,7 +39,7 @@ export default function ReferralBootstrap() {
         applyingRef.current = false;
       }
     })();
-  }, [user?.id, user?.email_confirmed_at, refreshSubscription]);
+  }, [user?.id, user?.email_confirmed_at, refreshSubscription, t]);
 
   return null;
 }

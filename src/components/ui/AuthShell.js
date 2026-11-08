@@ -12,7 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { layout, radii, spacing, typography } from "../../theme/tokens";
-import BrandLockup from "../BrandLockup";
+import { BrandLockup } from "../BrandLockup";
 
 const COMPACT_HEIGHT = 760;
 /** Card pulls onto the hero curve; brand padding absorbs the overlap. */

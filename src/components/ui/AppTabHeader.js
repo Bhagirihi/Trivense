@@ -8,8 +8,7 @@ import { layout, spacing, typography } from "../../theme/tokens";
 /**
  * Main tab screen header — branded navy chrome for Home / Analytics / Profile / Settings.
  */
-export const AppTabHeader = memo(
-  ({
+export const AppTabHeader = memo(function AppTabHeader({
     title,
     subtitle,
     eyebrow,
@@ -19,7 +18,7 @@ export const AppTabHeader = memo(
     onTitlePress,
     onPlanPress,
     testID,
-  }) => {
+  }) {
     const { theme } = useTheme();
     const bg = theme.headerBackground || theme.primary;
     const fg = theme.headerText || theme.white;

@@ -5,7 +5,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { radii, spacing, typography } from "../../theme/tokens";
 
-export const HomeBrowseLink = memo(({ count, onPress }) => {
+export const HomeBrowseLink = memo(function HomeBrowseLink({ count, onPress }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
 

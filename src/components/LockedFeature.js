@@ -4,8 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useSubscription } from "../context/SubscriptionContext";
 import { useTranslation } from "../hooks/useTranslation";
-import { getFeatureLockInfo } from "../config/subscriptionPlans";
-import FeatureLockModal from "./FeatureLockModal";
+import { FeatureLockModal } from "./FeatureLockModal";
 
 export const useFeatureLock = (feature) => {
   const { hasFeature } = useSubscription();

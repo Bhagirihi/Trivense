@@ -17,6 +17,7 @@ export default function InlineListAd({ style }) {
   const [bannerSize, setBannerSize] = useState(null);
 
   const canRequestAd = showBannerAds && !failed && isAdMobAvailable();
+  const unitId = getBannerUnitId("inline");
 
   useEffect(() => {
     if (!canRequestAd) return;
@@ -38,7 +39,7 @@ export default function InlineListAd({ style }) {
     };
   }, [canRequestAd]);
 
-  if (!showBannerAds || failed || !canRequestAd || !BannerAd || !bannerSize) {
+  if (!showBannerAds || failed || !canRequestAd || !unitId || !BannerAd || !bannerSize) {
     return null;
   }
 
@@ -51,7 +52,7 @@ export default function InlineListAd({ style }) {
       ]}
     >
       <BannerAd
-        unitId={getBannerUnitId("inline")}
+        unitId={unitId}
         size={bannerSize}
         onAdLoaded={() => setLoaded(true)}
         onAdFailedToLoad={() => setFailed(true)}

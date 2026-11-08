@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase";
 import { getCurrentUser } from "../utils/supabaseAuth";
+import { devLog } from "../utils/logger";
 
 export const categoryService = {
   async getCategories() {
@@ -64,7 +65,7 @@ export const categoryService = {
         throw error;
       }
 
-      console.log("Successfully imported default categories:");
+      devLog("Successfully imported default categories:");
       return data;
     } catch (error) {
       console.error("Error in importDefaultCategories:", error.message);

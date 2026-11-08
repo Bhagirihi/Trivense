@@ -15,7 +15,7 @@ import {
   isAdMobAvailable,
   showRewardedAdForTemporaryAdFree,
 } from "../services/adService";
-import { REWARDED_AD_FREE_HOURS } from "../config/admob";
+import { ADMOB_UNITS, REWARDED_AD_FREE_HOURS } from "../config/admob";
 import { showToast } from "../utils/toast";
 import { radii, spacing, typography } from "../theme/tokens";
 
@@ -30,7 +30,7 @@ export default function RewardedAdOffer({ navigation, compact = false }) {
   const { paymentsEnabled } = useSubscription();
   const [loading, setLoading] = useState(false);
 
-  if (!isAdMobAvailable() || rewardedAdFreeUntil) {
+  if (!isAdMobAvailable() || rewardedAdFreeUntil || !ADMOB_UNITS.rewarded) {
     return null;
   }
 

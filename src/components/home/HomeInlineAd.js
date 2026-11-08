@@ -7,7 +7,7 @@ import { useAdEntitlement } from "../../hooks/useAdEntitlement";
 /**
  * Compact home ad slot — mirrors Rasoi SponsorOrAd placement on the dashboard.
  */
-export const HomeInlineAd = memo(() => {
+export const HomeInlineAd = memo(function HomeInlineAd() {
   const { showBannerAds } = useAdPolicy();
   const { shouldShowFreeTierAds } = useAdEntitlement();
 

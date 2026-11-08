@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase";
+import { devLog } from "../utils/logger";
 
 const FALLBACK_CATEGORY = {
   name: "Uncategorized",
@@ -45,19 +46,19 @@ function accumulateCategoryTotals(expenses) {
 export const fetchExpenseTrends = async (userId, period) => {
   try {
     // Get the current user's expense board
-    const { data: expenseBoard, error: boardError } = await supabase
+    const { data: expenseBoard } = await supabase
       .from("expense_boards")
       .select("id, created_by")
       .eq("created_by", userId.toString());
 
-    console.log("expenseBoard fetchExpenseTrends", userId, expenseBoard);
+    devLog("expenseBoard fetchExpenseTrends", userId, expenseBoard);
 
     const { data: sharedBoards, error: sharedError } = await supabase
       .from("shared_users")
       .select("board_id, user_id, shared_with")
       .eq("user_id", userId.toString())
       .eq("is_accepted", true);
-    console.log("sharedBoards", sharedBoards);
+    devLog("sharedBoards", sharedBoards);
     if (sharedError) throw sharedError;
 
     const ownedIds = expenseBoard?.map((b) => b.id) || [];
@@ -88,7 +89,7 @@ export const fetchExpenseTrends = async (userId, period) => {
         insights: [],
       };
     }
-    console.log("-----", boardIds);
+    devLog("-----", boardIds);
 
     // Calculate date ranges for current and previous period
     const now = new Date();

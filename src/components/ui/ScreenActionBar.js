@@ -7,8 +7,7 @@ import { layout, spacing } from "../../theme/tokens";
 /**
  * Pins primary actions above the home indicator / Android nav bar.
  */
-export const ScreenActionBar = memo(
-  ({ children, style, bordered = true, backgroundColor }) => {
+export const ScreenActionBar = memo(function ScreenActionBar({ children, style, bordered = true, backgroundColor }) {
     const { theme } = useTheme();
     const insets = useSafeAreaInsets();
 

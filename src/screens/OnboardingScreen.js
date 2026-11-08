@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import BrandLogo from "../components/BrandLogo";
+import { BrandLogo } from "../components/BrandLogo";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { setOnboardingComplete } from "../utils/onboardingStorage";

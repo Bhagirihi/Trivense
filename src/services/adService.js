@@ -207,6 +207,7 @@ export async function initializeAds() {
 
 async function preloadInterstitial() {
   if (!isNativeAdsSupported()) return;
+  if (!ADMOB_UNITS.interstitial) return;
 
   const mod = await getAdsModule();
   if (!mod?.InterstitialAd || !mod?.AdEventType) return;
@@ -234,6 +235,7 @@ async function preloadInterstitial() {
 
 async function preloadAppOpen() {
   if (!isNativeAdsSupported()) return;
+  if (!ADMOB_UNITS.appOpen) return;
 
   const mod = await getAdsModule();
   if (!mod?.AppOpenAd || !mod?.AdEventType) return;
@@ -260,6 +262,7 @@ async function preloadAppOpen() {
 
 async function preloadRewarded() {
   if (!isNativeAdsSupported()) return;
+  if (!ADMOB_UNITS.rewarded) return;
 
   const mod = await getAdsModule();
   if (!mod?.RewardedAd || !mod?.RewardedAdEventType || !mod?.AdEventType) return;
@@ -383,6 +386,10 @@ export async function showPremiumActionInterstitialIfReady(isAdFree, paymentsEna
 export async function showRewardedAdForTemporaryAdFree() {
   if (!isNativeAdsSupported()) {
     throw new Error("Ads are not available in this build");
+  }
+
+  if (!ADMOB_UNITS.rewarded) {
+    throw new Error("Rewarded ads are not configured yet");
   }
 
   await initializeAds();

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -47,7 +47,7 @@ const EmailVerificationScreen = ({ navigation, route }) => {
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, []);
+  }, [checkVerificationStatus, navigation]);
 
   // Set up real-time subscriptions
   useEffect(() => {
@@ -57,9 +57,9 @@ const EmailVerificationScreen = ({ navigation, route }) => {
     return () => {
       subscription?.unsubscribe?.(); // Safe call to unsubscribe
     };
-  }, []);
+  }, [checkVerificationStatus]);
 
-  const checkVerificationStatus = async () => {
+  const checkVerificationStatus = useCallback(async () => {
     try {
       const { data, error } = await supabase.auth.getUser();
 
@@ -80,7 +80,7 @@ const EmailVerificationScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error("Error checking verification status:", error);
     }
-  };
+  }, [navigation]);
 
   const handleOpenEmail = () => {
     Linking.openURL("mailto:");
