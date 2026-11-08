@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { supabase } from "../config/supabase";
-import { getSession } from "../config/supabase";
+import { supabase, getSession } from "../config/supabase";
 
 const AuthContext = createContext({});
 

@@ -5,12 +5,11 @@ import {
   StyleSheet,  TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Platform,
   ScrollView,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { ScreenActionBar } from "../components/ui/ScreenActionBar";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { categoryService } from "../services/categoryService";
@@ -83,7 +82,7 @@ export const AddCategoryScreen = ({ navigation, route }) => {
           CATEGORY_ICONS[0],
       });
     }
-  }, [route.params?.category]);
+  }, [route.params, route.params?.category]);
 
   const validateForm = () => {
     const newErrors = {};

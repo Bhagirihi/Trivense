@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { shadowStyle } from "../utils/platformStyles";
 import {
   View,
@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Card from "../components/common/Card";
@@ -25,7 +25,7 @@ import { expenseBoardService } from "../services/expenseBoardService";
 import { useTranslation } from "../hooks/useTranslation";
 import { useSubscription } from "../context/SubscriptionContext";
 import { FEATURES } from "../config/subscriptionPlans";
-import PaywallGate from "../components/PaywallGate";
+import { PaywallGate } from "../components/PaywallGate";
 import PremiumFeatureAd from "../components/PremiumFeatureAd";
 import { buildBoardJoinUrl } from "../config/appLinks";
 import {
@@ -73,7 +73,7 @@ export const AnalysisScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     if (selectedTrip?.id) fetchAnalysisData();
-  }, [selectedTrip?.id]);
+  }, [selectedTrip?.id, fetchAnalysisData]);
 
   const fetchBoardsDetails = async (boardId) => {
     try {
@@ -125,7 +125,7 @@ export const AnalysisScreen = ({ navigation, route }) => {
     }
   };
 
-  const fetchAnalysisData = async () => {
+  const fetchAnalysisData = useCallback(async () => {
     if (!selectedTrip?.id) return;
     try {
       const data = await expenseBoardService.getExpenseBoardsByID(
@@ -150,7 +150,7 @@ export const AnalysisScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error("Error fetching analysis data:", error);
     }
-  };
+  }, [selectedTrip]);
 
   const shareWhoOwes = async () => {
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -7,16 +7,14 @@ import {
   Switch,
   TextInput,
   Modal,
-  FlatList,
   Alert,
   Share,
   ActivityIndicator,
-  Pressable,
   Linking,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import RewardedAdOffer from "../components/RewardedAdOffer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -46,7 +44,7 @@ import { devLog } from "../utils/logger";
 import { copyToClipboard } from "../utils/clipboard";
 import { LEGAL_LINKS, buildReferralShareUrl } from "../config/appLinks";
 import { referralService } from "../services/referralService";
-import BrandLogo from "../components/BrandLogo";
+import { BrandLogo } from "../components/BrandLogo";
 import { createSettingsStyles } from "./settings/settingsStyles";
 import { PasswordResetSection } from "./settings/PasswordResetSection";
 
@@ -78,9 +76,7 @@ export const SettingsScreen = ({ navigation }) => {
   const [referralCode, setReferralCode] = useState("");
   const [referralInvitees, setReferralInvitees] = useState([]);
   const [loadingReferrals, setLoadingReferrals] = useState(false);
-  const [selectedBoard, setSelectedBoard] = useState(null);
   const [boardName, setBoardName] = useState("");
-  const [showBoardDropdown, setShowBoardDropdown] = useState(false);
   const [boardID, updateBoard] = useState("");
   const [userID, setUserID] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -89,23 +85,23 @@ export const SettingsScreen = ({ navigation }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [sharedMembers, setSharedMembers] = useState([]);
-  const [inviteeCount, setInviteeCount] = useState(0);
+  const [, setInviteeCount] = useState(0);
   const [inviteesList, setInviteesList] = useState([]);
   const [loadingInvitees, setLoadingInvitees] = useState(false);
   const [dataActionLoading, setDataActionLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   useEffect(() => {
     const unsubscribe = realTimeSync(() => {
       fetchData();
     }, "realtime-settings");
     return unsubscribe;
-  }, []);
+  }, [fetchData]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const profileResult = await userService.getProfile();
@@ -148,7 +144,7 @@ export const SettingsScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   const handleShareApp = async (method) => {
     try {
@@ -490,180 +486,8 @@ export const SettingsScreen = ({ navigation }) => {
     </View>
   );
 
-  const renderBudgetEditor = () => {
-    return (
-      <View
-        style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}
-      >
-        <Text style={[styles.modalTitle, { color: theme.text }]}>
-          Set Board Budget
-        </Text>
-        <View style={styles.dropdownContainer}>
-          <Text style={[styles.dropdownLabel, { color: theme.text }]}>
-            Select Board
-          </Text>
-          <TouchableOpacity
-            style={[styles.dropdown, { backgroundColor: theme.card }]}
-            onPress={() => setShowBoardDropdown(!showBoardDropdown)}
-          >
-            <Text style={[styles.dropdownText, { color: theme.text }]}>
-              {selectedBoard ? selectedBoard.name : "Choose a board"}
-            </Text>
-            <MaterialCommunityIcons
-              name={showBoardDropdown ? "chevron-up" : "chevron-down"}
-              size={20}
-              color={theme.textSecondary}
-            />
-          </TouchableOpacity>
-          {showBoardDropdown && (
-            <View
-              style={[styles.dropdownList, { backgroundColor: theme.card }]}
-            >
-              {expenseBoards.map((board) => (
-                <TouchableOpacity
-                  key={board.id}
-                  style={[
-                    styles.dropdownItem,
-                    {
-                      backgroundColor:
-                        selectedBoard?.id === board.id
-                          ? theme.primaryLight
-                          : "transparent",
-                    },
-                  ]}
-                  onPress={() => {
-                    setSelectedBoard({
-                      ...board,
-                      budget: board.total_budget ?? 0,
-                    });
-                    setEditValue(board.total_budget?.toString() || "");
-                    setShowBoardDropdown(false);
-                  }}
-                >
-                  <Text
-                    style={[styles.dropdownItemText, { color: theme.text }]}
-                  >
-                    {board.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-        {selectedBoard && (
-          <View style={styles.budgetInputContainer}>
-            <Text style={[styles.budgetLabel, { color: theme.text }]}>
-              Budget Amount
-            </Text>
-            <TextInput
-              style={[styles.budgetInput, { color: theme.text }]}
-              value={editValue}
-              onChangeText={(value) => {
-                setEditValue(value);
-                if (!selectedBoard) return;
-                const parsed = parseFloat(value);
-                const nextBudget = Number.isFinite(parsed) ? parsed : 0;
-                setSelectedBoard((prev) => ({ ...prev, budget: nextBudget }));
-              }}
-              keyboardType="numeric"
-              placeholder={t("enterBudgetAmount")}
-              placeholderTextColor={theme.textSecondary}
-            />
-          </View>
-        )}
-        <View style={styles.modalButtons}>
-          <TouchableOpacity
-            style={[styles.modalButton, { backgroundColor: theme.errorLight }]}
-            onPress={() => setEditModalVisible(false)}
-          >
-            <Text style={[styles.modalButtonText, { color: theme.error }]}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, { backgroundColor: theme.primary }]}
-            onPress={handleApplyBudgets}
-          >
-            <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>
-              Apply
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, { backgroundColor: theme.primary }]}
-            onPress={handleApplyAllBudgets}
-          >
-            <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>
-              Apply All
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
 
-  const handleApplyBudgets = async () => {
-    if (!selectedBoard) {
-      showToast.error(t("error"), t("pleaseSelectBoardFirst"));
-      return;
-    }
 
-    devLog("Selected Board:", {
-      id: selectedBoard.id,
-      name: selectedBoard.name,
-      newBudget: selectedBoard.budget,
-    });
-
-    try {
-      const { error } = await supabase
-        .from("expense_boards")
-        .update({
-          total_budget: selectedBoard.budget || 0,
-        })
-        .eq("id", selectedBoard.id);
-
-      if (error) throw error;
-
-      showToast.success(t("success"), t("boardBudgetUpdated"));
-      setEditModalVisible(false);
-    } catch (error) {
-      console.error("Error updating board budget:", error);
-      showToast.error(t("error"), t("failedToUpdateBoardBudget"));
-    }
-  };
-
-  const handleApplyAllBudgets = async () => {
-    const message = t("confirmApplyAllMessage").replace("{{amount}}", String(selectedBoard?.budget ?? ""));
-    Alert.alert(
-      t("confirmApplyAll"),
-      message,
-      [
-        {
-          text: t("cancel"),
-          style: "cancel",
-        },
-        {
-          text: t("applyAll"),
-          onPress: async () => {
-            try {
-              for (const newboard of expenseBoards) {
-                const { error } = await supabase
-                  .from("expense_boards")
-                  .update({ total_budget: selectedBoard.budget || 0 })
-                  .eq("id", newboard.id);
-
-                if (error) throw error;
-              }
-
-              showToast.success(t("success"), t("allBoardBudgetsUpdated"));
-              setEditModalVisible(false);
-            } catch (error) {
-              showToast.error(t("error"), t("failedToApplyAllBudgets"));
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const renderBoardDetails = () => (
     <View
@@ -849,7 +673,7 @@ export const SettingsScreen = ({ navigation }) => {
     />
   );
 
-  const fetchInvitees = async () => {
+  const fetchInvitees = useCallback(async () => {
     try {
       setLoadingInvitees(true);
       const {
@@ -891,13 +715,13 @@ export const SettingsScreen = ({ navigation }) => {
     } finally {
       setLoadingInvitees(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     if (boardID) {
       fetchInvitees();
     }
-  }, [boardID]);
+  }, [boardID, fetchInvitees]);
 
   const renderInvitees = () => (
     <View
@@ -1371,35 +1195,6 @@ export const SettingsScreen = ({ navigation }) => {
           React.cloneElement(child, { key: `${title}-${index}` })
         )}
       </View>
-    </View>
-  );
-
-  const renderBoardListWithInput = () => (
-    <View style={styles.boardListContainer}>
-      {expenseBoards.map((board) => (
-        <View key={board.id} style={styles.boardItemContainer}>
-          <Text style={[styles.boardName, { color: theme.text }]}>
-            {board.name}
-          </Text>
-          <TextInput
-            style={[styles.amountInput, { color: theme.text }]}
-            value={board.budget?.toString() || ""}
-            onChangeText={(value) => {
-              const newBudget = parseFloat(value);
-              if (!isNaN(newBudget)) {
-                setExpenseBoards((prevBoards) =>
-                  prevBoards.map((b) =>
-                    b.id === board.id ? { ...b, budget: newBudget } : b
-                  )
-                );
-              }
-            }}
-            keyboardType="numeric"
-            placeholder="Enter amount"
-            placeholderTextColor={theme.textSecondary}
-          />
-        </View>
-      ))}
     </View>
   );
 

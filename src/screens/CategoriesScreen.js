@@ -5,22 +5,18 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  Modal,
   Platform,
 } from "react-native";
+import { devLog } from "../utils/logger";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { categoryService } from "../services/categoryService";
 import ListHeader from "../components/common/ListHeader";
 import { showToast } from "../utils/toast";
-import { AddCategoryScreen } from "./AddCategoryScreen";
 import { realTimeSync } from "../services/realTimeSync";
 import { sendDeleteCategoryNotification } from "../services/pushNotificationService";
 import { useTranslation } from "../hooks/useTranslation";
@@ -33,90 +29,8 @@ import {
 } from "../utils/listWithAds";
 import { LIST_AD_INTERVAL_CATEGORIES } from "../config/admob";
 
-const DEFAULT_CATEGORIES = [
-  {
-    id: "default-1",
-    name: "Food",
-    icon: "food",
-    color: "#FF6B6B",
-    description: "Food and dining expenses",
-  },
-  {
-    id: "default-2",
-    name: "Transport",
-    icon: "car",
-    color: "#4ECDC4",
-    description: "Transportation costs",
-  },
-  {
-    id: "default-3",
-    name: "Shopping",
-    icon: "shopping",
-    color: "#45B7D1",
-    description: "Shopping and retail",
-  },
-  {
-    id: "default-4",
-    name: "Entertainment",
-    icon: "movie",
-    color: "#96CEB4",
-    description: "Entertainment and leisure",
-  },
-  {
-    id: "default-5",
-    name: "Health",
-    icon: "heart",
-    color: "#FFEEAD",
-    description: "Health and medical expenses",
-  },
-  {
-    id: "default-6",
-    name: "Education",
-    icon: "book",
-    color: "#D4A5A5",
-    description: "Education and learning",
-  },
-  {
-    id: "default-7",
-    name: "Housing",
-    icon: "home",
-    color: "#9B59B6",
-    description: "Housing and utilities",
-  },
-  {
-    id: "default-8",
-    name: "Travel",
-    icon: "airplane",
-    color: "#3498DB",
-    description: "Travel and tourism",
-  },
-];
 
-const CATEGORY_COLORS = [
-  { id: "red", value: "#FF6B6B" },
-  { id: "teal", value: "#4ECDC4" },
-  { id: "blue", value: "#45B7D1" },
-  { id: "green", value: "#96CEB4" },
-  { id: "yellow", value: "#FFEEAD" },
-  { id: "pink", value: "#D4A5A5" },
-  { id: "purple", value: "#9B59B6" },
-  { id: "navy", value: "#3498DB" },
-  { id: "orange", value: "#E67E22" },
-  { id: "mint", value: "#1ABC9C" },
-];
 
-const CATEGORY_ICONS = [
-  { id: "food", name: "food", label: "Food" },
-  { id: "transport", name: "car", label: "Transport" },
-  { id: "shopping", name: "shopping", label: "Shopping" },
-  { id: "entertainment", name: "movie", label: "Entertainment" },
-  { id: "utilities", name: "flash", label: "Utilities" },
-  { id: "health", name: "heart", label: "Health" },
-  { id: "education", name: "book", label: "Education" },
-  { id: "housing", name: "home", label: "Housing" },
-  { id: "travel", name: "airplane", label: "Travel" },
-  { id: "other", name: "dots-horizontal", label: "Other" },
-];
 
 const styles = StyleSheet.create({
   container: {
@@ -335,12 +249,12 @@ export const CategoriesScreen = ({ navigation }) => {
   }, [categories, isAdFree, showBannerAds]);
 
   const fetchCategories = useCallback(async () => {
-    console.log("🔄 Starting to fetch categories...");
+    devLog("🔄 Starting to fetch categories...");
     try {
       const data = await categoryService.getCategories();
 
       if (!data) {
-        console.log("No categories found");
+        devLog("No categories found");
         setCategories([]);
         return;
       }
@@ -351,7 +265,7 @@ export const CategoriesScreen = ({ navigation }) => {
       showToast.error("Failed to fetch categories");
       setCategories([]);
     } finally {
-      console.log("🏁 Category fetching process completed");
+      devLog("🏁 Category fetching process completed");
       setLoading(false);
     }
   }, []);
@@ -368,7 +282,7 @@ export const CategoriesScreen = ({ navigation }) => {
         cleanup();
       }
     };
-  }, []);
+  }, [fetchCategories]);
 
   const handleDelete = async (categoryId) => {
     try {

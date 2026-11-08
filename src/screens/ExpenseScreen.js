@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { shadowStyle } from "../utils/platformStyles";
 import {
   View,
@@ -6,16 +6,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Platform,
   TextInput,
 } from "react-native";
+import { devLog } from "../utils/logger";
 import { useTheme } from "../context/ThemeContext";
-import { useAppSettings } from "../context/AppSettingsContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { CategoryList } from "../components/CategoryList";
 import ExpenseList from "../components/ExpenseList";
@@ -48,13 +47,17 @@ export const ExpenseScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expenses, setExpenses] = useState([]);
+  // Latest expenses for paginated fetches: fetchExpenses is memoized, so
+  // it reads the list through a ref instead of closing over state.
+  const expensesRef = useRef([]);
+  expensesRef.current = expenses;
   const [monthlyStats, setMonthlyStats] = useState({
     totalExpenses: 0,
     totalBudget: 2000.0,
     remainingBalance: 2000.0,
   });
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [, setPage] = useState(1);
+  const [, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -117,13 +120,13 @@ export const ExpenseScreen = ({ navigation }) => {
         EnpenseRealTimeSync();
       }
     };
-  }, [selectedCategory]);
+  }, [selectedCategory, fetchExpenses]);
 
-  const fetchExpenses = async (pageNum = 1) => {
+  const fetchExpenses = useCallback(async (pageNum = 1) => {
     try {
       setLoading(true);
       setError(null);
-      console.log("Fetching expenses...");
+      devLog("Fetching expenses...");
 
       const { data, hasMore: more } = await expenseService.getExpenses(
         selectedCategory === 0 ? null : selectedCategory,
@@ -139,7 +142,8 @@ export const ExpenseScreen = ({ navigation }) => {
         return;
       }
 
-      const newExpenses = pageNum === 1 ? data : [...expenses, ...data];
+      const newExpenses =
+        pageNum === 1 ? data : [...expensesRef.current, ...data];
       setExpenses(newExpenses);
       memoizedCalculateMonthlyStats(newExpenses);
       setHasMore(more);
@@ -156,7 +160,7 @@ export const ExpenseScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [selectedCategory, memoizedCalculateMonthlyStats]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -476,8 +480,8 @@ const styles = StyleSheet.create({
   monthlyStats: {
     justifyContent: "space-between",
     marginHorizontal: 18,
-    marginBottom: Platform.OS == "ios" ? 10 : 6,
-    padding: Platform.OS == "ios" ? 16 : 12,
+    marginBottom: Platform.OS === "ios" ? 10 : 6,
+    padding: Platform.OS === "ios" ? 16 : 12,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: {
@@ -492,7 +496,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Platform.OS == "ios" ? 16 : 12,
+    marginBottom: Platform.OS === "ios" ? 16 : 12,
   },
   statsItem: {
     flex: 1,
@@ -509,7 +513,7 @@ const styles = StyleSheet.create({
   },
   combinedProgressContainer: {
     width: "100%",
-    marginTop: Platform.OS == "ios" ? 8 : 4,
+    marginTop: Platform.OS === "ios" ? 8 : 4,
   },
   progressLabels: {
     flexDirection: "row",

@@ -11,7 +11,7 @@ import { supabase } from "../config/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { showToast } from "../utils/toast";
 import { isValidEmail } from "../utils/validation";
-import AuthShell from "../components/ui/AuthShell";
+import { AuthShell } from "../components/ui/AuthShell";
 import FormButton from "../components/common/FormButton";
 import { spacing, typography } from "../theme/tokens";
 

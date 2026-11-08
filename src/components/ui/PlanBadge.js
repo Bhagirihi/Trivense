@@ -7,7 +7,7 @@ import { useSubscription } from "../../context/SubscriptionContext";
 import { PLAN_CATALOG } from "../../config/subscriptionPlans";
 import { radii } from "../../theme/tokens";
 
-export const PlanBadge = memo(({ onPress, tone = "default" }) => {
+export const PlanBadge = memo(function PlanBadge({ onPress, tone = "default" }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { plan, isPremium } = useSubscription();

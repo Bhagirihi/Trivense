@@ -1,4 +1,3 @@
-import { Platform } from "react-native";
 import { supabase } from "../config/supabase";
 import { getCurrentUser } from "../utils/supabaseAuth";
 import {

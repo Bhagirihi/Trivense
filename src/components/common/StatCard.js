@@ -5,8 +5,7 @@ import { useTheme } from "../../context/ThemeContext";
 import Card from "./Card";
 import { radii, spacing, typography } from "../../theme/tokens";
 
-const StatCard = memo(
-  ({
+const StatCard = memo(function StatCard({
     title,
     value,
     icon,
@@ -17,7 +16,7 @@ const StatCard = memo(
     valueStyle,
     trendStyle,
     ...props
-  }) => {
+  }) {
     const { theme } = useTheme();
 
     const styles = useMemo(

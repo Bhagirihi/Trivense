@@ -3,8 +3,7 @@ import { View, Text, TextInput, StyleSheet } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { radii, spacing, typography } from "../../theme/tokens";
 
-const FormInput = memo(
-  ({
+const FormInput = memo(function FormInput({
     label,
     error,
     value,
@@ -20,7 +19,7 @@ const FormInput = memo(
     labelStyle,
     errorStyle,
     ...props
-  }) => {
+  }) {
     const { theme } = useTheme();
 
     const styles = useMemo(

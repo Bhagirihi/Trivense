@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useSubscription } from "../context/SubscriptionContext";
-import FeatureLockModal from "../components/FeatureLockModal";
+import { FeatureLockModal } from "../components/FeatureLockModal";
 
 export function useFeatureLockModal(navigation) {
   const { paymentsEnabled } = useSubscription();

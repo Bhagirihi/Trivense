@@ -12,7 +12,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { expenseBoardService } from "../services/expenseBoardService";
 import { showToast } from "../utils/toast";
-import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "../hooks/useTranslation";
 
 export const ExpenseBoardList = ({
@@ -22,7 +21,6 @@ export const ExpenseBoardList = ({
 }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const navigation = useNavigation();
   const [boards, setBoards] = useState([]);
   const [loading, setLoading] = useState(true);
 

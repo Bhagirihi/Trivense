@@ -4,27 +4,20 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
-  ActivityIndicator,
-  Alert,
   RefreshControl,
   Platform,
   Animated,
   Easing,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import { useAppSettings } from "../context/AppSettingsContext";
 import { useSubscription } from "../context/SubscriptionContext";
 import { useAuth } from "../context/AuthContext";
 import { getUserProfile } from "../config/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { expenseBoardService } from "../services/expenseBoardService";
 import { expenseService } from "../services/expenseService";
-import { dashboardService } from "../services/dashboardService";
 import ThemeToggle from "../components/ThemeToggle";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import ExpenseList from "../components/ExpenseList";
-import BrandLogo from "../components/BrandLogo";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { AppTabHeader } from "../components/ui/AppTabHeader";
 import { PlanBadge } from "../components/ui/PlanBadge";
@@ -36,14 +29,12 @@ import { showToast } from "../utils/toast";
 import { formatCurrency } from "../utils/formatters";
 import { getLocalizedGreeting, getFirstName } from "../utils/greeting";
 import { notificationService } from "../services/notificationService";
-import BalloonIllustration from "../components/BalloonIllustration";
 import { realTimeSync } from "../services/realTimeSync";
 import {
   sendCreateCategoryNotification,
   sendCreateExpenseBoardNotification,
   sendCreateExpenseNotification,
   sendDeleteCategoryNotification,
-  sendExpenseBoardDeletedNotification,
   sendExpenseBoardInviteNotification,
   sendExpenseDeletedNotification,
   sendExpenseOverBudgetNotification,
@@ -65,19 +56,17 @@ import { QuickActionTile } from "../components/ui/UIKit";
 import { styles } from "./dashboard/dashboardStyles";
 import { useFooterScrollPadding } from "../hooks/useFooterScrollPadding";
 
-const { width, height } = Dimensions.get("window");
 
 export const DashboardScreen = ({ navigation }) => {
   const { startTour, activeHighlight, isActive: cueActive } = useAppCue();
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const { currency } = useAppSettings();
   const { paymentsEnabled, loading: subscriptionLoading } = useSubscription();
   const scrollBottomPadding = useFooterScrollPadding(0, false);
   const recentLimit = Platform.OS === "android" ? 5 : 4;
   const { user: authUser } = useAuth();
   const [userProfile, setUserProfile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [expenses, setExpenses] = useState([]);
   const [hasBoards, setHasBoards] = useState(false);
@@ -99,8 +88,6 @@ export const DashboardScreen = ({ navigation }) => {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  const pushToken = userProfile?.expo_push_token; // Replace with actual token
-  const message = "Hello, you have a new notification!";
 
   const loadProfile = useCallback(async () => {
     if (!authUser?.id) return;
@@ -209,7 +196,7 @@ export const DashboardScreen = ({ navigation }) => {
       return () => {
         active = false;
       };
-    }, [navigation])
+    }, [navigation, authUser?.id])
   );
 
   useFocusEffect(
@@ -295,7 +282,7 @@ export const DashboardScreen = ({ navigation }) => {
         })
       ).start();
     }
-  }, [loading]);
+  }, [loading, fadeAnim, pulseAnim, rotateAnim, scaleAnim]);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -324,7 +311,6 @@ export const DashboardScreen = ({ navigation }) => {
       showToast.error(t("failedToDeleteExpense"), t("tryAgainLater"));
     }
   };
-  let remainingBudget;
   // const fetchDashboardData = async () => {
   //   try {
   //     //setLoading(true);

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useSubscription } from "../context/SubscriptionContext";
 import { useTranslation } from "../hooks/useTranslation";
-import FeatureLockModal from "./FeatureLockModal";
+import { FeatureLockModal } from "./FeatureLockModal";
 
 export const PaywallGate = ({
   feature,

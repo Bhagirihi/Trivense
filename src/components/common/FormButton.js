@@ -9,8 +9,7 @@ import {
 import { useTheme } from "../../context/ThemeContext";
 import { radii, spacing, typography } from "../../theme/tokens";
 
-const FormButton = memo(
-  ({
+const FormButton = memo(function FormButton({
     title,
     onPress,
     loading = false,
@@ -21,7 +20,7 @@ const FormButton = memo(
     textStyle,
     testID,
     ...props
-  }) => {
+  }) {
     const { theme } = useTheme();
 
     const styles = useMemo(

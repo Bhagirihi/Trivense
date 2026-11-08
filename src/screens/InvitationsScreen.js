@@ -5,12 +5,11 @@ import {
   StyleSheet,  ScrollView,
   Text,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { expenseBoardService } from "../services/expenseBoardService";

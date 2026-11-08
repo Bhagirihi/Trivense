@@ -3,8 +3,6 @@ import { supabase } from "../config/supabase";
 import { devLog } from "../utils/logger";
 import {
   getAccessibleBoardIds,
-  getBoardSummaries,
-  getExpenseCountsByBoard,
 } from "./boardAccessService";
 
 export const dashboardService = {

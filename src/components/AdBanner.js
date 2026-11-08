@@ -21,6 +21,7 @@ export default function AdBanner() {
   const [bannerSize, setBannerSize] = useState(null);
 
   const canRequestAd = showBannerAds && !failed && isAdMobAvailable();
+  const unitId = getBannerUnitId("footer");
 
   useEffect(() => {
     if (!canRequestAd) return;
@@ -42,7 +43,7 @@ export default function AdBanner() {
     };
   }, [canRequestAd]);
 
-  if (!showBannerAds || failed || !canRequestAd || !BannerAd || !bannerSize) {
+  if (!showBannerAds || failed || !canRequestAd || !unitId || !BannerAd || !bannerSize) {
     return null;
   }
 
@@ -55,7 +56,7 @@ export default function AdBanner() {
       ]}
     >
       <BannerAd
-        unitId={getBannerUnitId("footer")}
+        unitId={unitId}
         size={bannerSize}
         onAdLoaded={() => setLoaded(true)}
         onAdFailedToLoad={() => setFailed(true)}

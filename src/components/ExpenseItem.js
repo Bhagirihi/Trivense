@@ -21,7 +21,7 @@ const formatDate = (date) => {
   return expenseDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-const ExpenseItem = memo(({ expense, onPress, onDelete, compact = false }) => {
+const ExpenseItem = memo(function ExpenseItem({ expense, onPress, onDelete, compact = false }) {
   const { theme } = useTheme();
   const categoryName =
     typeof expense.category === "string"

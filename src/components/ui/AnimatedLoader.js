@@ -33,14 +33,13 @@ const CONTEXT_MESSAGE_KEYS = {
 /**
  * Full-screen / section loader with a spinning icon and rotating tips.
  */
-export const AnimatedLoader = memo(
-  ({
+export const AnimatedLoader = memo(function AnimatedLoader({
     context = "default",
     messageKeys,
     title,
     style,
     compact = false,
-  }) => {
+  }) {
     const { theme } = useTheme();
     const { t } = useTranslation();
     const spin = useRef(new Animated.Value(0)).current;

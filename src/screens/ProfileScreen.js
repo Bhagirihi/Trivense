@@ -6,16 +6,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Platform,
   Image,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
-import ScreenLayout from "../components/ScreenLayout";
+import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
@@ -170,10 +168,11 @@ export const ProfileScreen = ({ navigation }) => {
     const userId = session?.user?.id;
     if (!userId) throw new Error("User not logged in");
 
-    await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
+    // NOTE: no FileSystem read here on purpose. An earlier version read
+    // the file as base64 first, but its result was never used — the upload
+    // below sends the uri directly — and the call itself threw on the
+    // current expo-file-system (readAsStringAsync lives in /legacy only),
+    // so picking an avatar always failed before the upload ran.
     const fileExt = uri.split(".").pop()?.split("?")[0] || "jpg";
     const filename = `${Date.now()}.${fileExt}`;
     const path = `${userId}/${filename}`;

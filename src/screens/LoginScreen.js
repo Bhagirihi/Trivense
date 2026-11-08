@@ -12,7 +12,7 @@ import { useTheme } from "../context/ThemeContext";
 import { supabase, signInWithGoogle } from "../config/supabase";
 import { showNetworkAwareError } from "../utils/toast";
 import { isValidEmail } from "../utils/validation";
-import AuthShell from "../components/ui/AuthShell";
+import { AuthShell } from "../components/ui/AuthShell";
 import FormButton from "../components/common/FormButton";
 import { createAuthFormStyles } from "../components/ui/authFormStyles";
 import { useTranslation } from "../hooks/useTranslation";

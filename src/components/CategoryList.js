@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import { devLog } from "../utils/logger";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { categoryService } from "../services/categoryService";
@@ -37,7 +38,7 @@ export const CategoryList = ({
       const data = await categoryService.getCategories();
 
       if (!data) {
-        console.log("No categories found");
+        devLog("No categories found");
         setCategories([]);
         return;
       }

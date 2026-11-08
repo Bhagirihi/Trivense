@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { radii, spacing, typography } from "../../theme/tokens";
 
-export const SectionLabel = memo(({ title, style }) => {
+export const SectionLabel = memo(function SectionLabel({ title, style }) {
   const { theme } = useTheme();
   return (
     <Text style={[styles.label, { color: theme.textMuted }, style]}>
@@ -13,8 +13,7 @@ export const SectionLabel = memo(({ title, style }) => {
   );
 });
 
-export const SettingsRow = memo(
-  ({
+export const SettingsRow = memo(function SettingsRow({
     icon,
     iconColor,
     iconBg,
@@ -24,7 +23,7 @@ export const SettingsRow = memo(
     rightElement,
     showChevron = true,
     isLast = false,
-  }) => {
+  }) {
     const { theme } = useTheme();
     const Wrapper = onPress ? TouchableOpacity : View;
 
@@ -73,7 +72,7 @@ export const SettingsRow = memo(
   }
 );
 
-export const QuickActionTile = memo(({ icon, label, color, bg, onPress, highlighted }) => {
+export const QuickActionTile = memo(function QuickActionTile({ icon, label, color, bg, onPress, highlighted }) {
   const { theme } = useTheme();
   return (
     <TouchableOpacity

@@ -2,13 +2,8 @@ import "react-native-url-polyfill/auto";
 import "react-native-get-random-values";
 import { crypto } from "expo-crypto";
 import { showToast } from "../utils/toast";
-if (!globalThis.crypto) {
-  globalThis.crypto = crypto;
-}
-
 import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import * as QueryParams from "expo-auth-session/build/QueryParams";
@@ -16,6 +11,11 @@ import {
   getGoogleIdTokenNative,
   isNativeGoogleSignInAvailable,
 } from "../services/googleAuthService";
+
+if (!globalThis.crypto) {
+  globalThis.crypto = crypto;
+}
+
 //Live
 export const TRIVENSE_SUPABASE_PROJECT_REF = "pvuybefxxtjwxpqhmgkw";
 
@@ -62,7 +62,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export const checkSupabaseConnection = async () => {
   try {
     // Try to fetch a simple query to check connection
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("profiles")
       .select("count")
       .limit(1)
@@ -332,11 +332,9 @@ export const resetPassword = async (email) => {
 
 // User profile helpers
 export const updateUserProfile = async (updates) => {
-  console.log("data updatedData ini");
   try {
     const { data } = await supabase.auth.getUser();
-    console.log("user updateUserProfile");
-    const { data: updatedData, error } = await supabase
+    const { error } = await supabase
       .from("profiles")
       .update({ ...updates, updated_at: new Date() })
       .eq("id", data.user?.id);

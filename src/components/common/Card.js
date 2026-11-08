@@ -3,7 +3,7 @@ import { View, StyleSheet, Platform } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { radii, spacing } from "../../theme/tokens";
 
-const Card = memo(({ children, style, variant, padding = "medium" }) => {
+const Card = memo(function Card({ children, style, variant, padding = "medium" }) {
   const { theme } = useTheme();
 
   const styles = useMemo(
