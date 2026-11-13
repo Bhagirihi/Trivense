@@ -1,19 +1,36 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { shadowStyle } from "../utils/platformStyles";
 import {
   View,
-  StyleSheet,  ScrollView,
+  StyleSheet,
+  ScrollView,
   Text,
   TouchableOpacity,
   Alert,
+  Share,
 } from "react-native";
-import { useTheme } from "../context/ThemeContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Header } from "../components/Header";
 import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { expenseBoardService } from "../services/expenseBoardService";
+import { supabase } from "../config/supabase";
 import { useTranslation } from "../hooks/useTranslation";
+import { showToast } from "../utils/toast";
+import { copyToClipboard } from "../utils/clipboard";
+import { buildBoardJoinUrl } from "../config/appLinks";
+import { kinetic } from "../theme/tokens";
+
+// Kinetic redesign (2026-11-13): canvas background, white cards, navy
+// tabs, coral Accept, pale Decline. Service calls unchanged —
+// accept/reject/remove via expenseBoardService.
+// Resend: there is no resend endpoint (shareBoardWithEmail refuses when
+// an invite is already pending), so Resend re-shares the board's real
+// join link via the system share sheet. Invite Friends / Copy Link use
+// the signed-in user's default board join link, fetched live.
+
+const C = kinetic.colors;
+const T = kinetic.typography;
+const R = kinetic.radii;
 
 function getInitials(name) {
   if (!name) return "?";
@@ -23,28 +40,14 @@ function getInitials(name) {
     : (names[0][0] + names[names.length - 1][0]).toUpperCase();
 }
 
-function getAvatarColor(email) {
-  const colors = [
-    "#FFD700",
-    "#FFB6C1",
-    "#87CEEB",
-    "#90EE90",
-    "#FFA07A",
-    "#9370DB",
-  ];
-  let hash = 0;
-  for (let i = 0; i < (email || "").length; i++) hash += email.charCodeAt(i);
-  return colors[hash % colors.length];
-}
-
-export const InvitationsScreen = ({ navigation, route }) => {
-  const { theme } = useTheme();
+export const InvitationsScreen = ({ route }) => {
   const { t } = useTranslation();
   const initialTab = route.params?.tab === "received" ? "received" : "sent";
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [invitations, setInvitations] = useState([]);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [inviteLink, setInviteLink] = useState(null);
 
   const fetchInvitations = useCallback(async () => {
     try {
@@ -65,6 +68,30 @@ export const InvitationsScreen = ({ navigation, route }) => {
   useEffect(() => {
     fetchInvitations();
   }, [fetchInvitations]);
+
+  const fetchInviteLink = useCallback(async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: boards } = await supabase
+        .from("expense_boards")
+        .select("id, is_default")
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false });
+      const board = (boards || []).find((b) => b.is_default) || boards?.[0];
+      if (!board) return;
+      const code = await expenseBoardService.getBoardShareCode(board.id);
+      if (code) setInviteLink(buildBoardJoinUrl(code));
+    } catch (error) {
+      console.error("Error fetching invite link:", error.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInviteLink();
+  }, [fetchInviteLink]);
 
   const handleAccept = async (id) => {
     try {
@@ -119,6 +146,44 @@ export const InvitationsScreen = ({ navigation, route }) => {
     );
   };
 
+  const handleResend = async (item) => {
+    try {
+      setIsUpdating(true);
+      const code = await expenseBoardService.getBoardShareCode(item.board_id);
+      if (!code) throw new Error("Could not load the board invite link");
+      await Share.share({
+        message: `Join "${getBoardName(item)}" on Trivense: ${buildBoardJoinUrl(code)}`,
+      });
+    } catch (error) {
+      Alert.alert(t("error"), error.message || "Failed to resend invitation");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleInviteFriends = async () => {
+    if (!inviteLink) {
+      showToast.info("No board yet", "Create a board first to invite friends.");
+      return;
+    }
+    try {
+      await Share.share({
+        message: `Join my expense board on Trivense: ${inviteLink}`,
+      });
+    } catch (error) {
+      console.error("Error sharing invite link:", error.message);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!inviteLink) {
+      showToast.info("No board yet", "Create a board first to invite friends.");
+      return;
+    }
+    copyToClipboard(inviteLink);
+    showToast.success(t("copied"), "Invite link copied");
+  };
+
   const getDisplayName = (item) => {
     if (activeTab === "sent") {
       return (
@@ -143,148 +208,106 @@ export const InvitationsScreen = ({ navigation, route }) => {
 
   const getBoardName = (item) => item.expense_boards?.name || "Unknown board";
 
-  const renderInvitationCard = (item) => {
+  const renderInviteCard = (item) => {
     const name = getDisplayName(item);
     const email = getDisplayEmail(item);
     const boardName = getBoardName(item);
     const isPending = item.status === "pending" && !item.is_accepted;
 
     return (
-      <View
-        key={item.id}
-        style={[
-          styles.inviteCard,
-          {
-            backgroundColor: theme.inviteCard.background,
-            borderColor: theme.inviteCard.border,
-            shadowColor: theme.inviteCard.shadow,
-          },
-        ]}
-      >
-        {item.is_accepted ? (
-          <View
-            style={[
-              styles.checkmarkContainer,
-              {
-                backgroundColor: theme.checkmark.background,
-                shadowColor: theme.checkmark.shadow,
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="check-decagram"
-              size={24}
-              color={theme.checkmark.icon}
-            />
-          </View>
-        ) : null}
-
+      <View key={item.id} style={styles.inviteCard}>
         <View style={styles.inviteCardContent}>
           <View style={styles.avatarAndInfo}>
-            <View
-              style={[
-                styles.avatarCircle,
-                {
-                  backgroundColor: getAvatarColor(email),
-                  shadowColor: theme.avatar.shadow,
-                },
-              ]}
-            >
-              <Text style={[styles.avatarInitials, { color: theme.avatar.text }]}>
-                {getInitials(name)}
-              </Text>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarInitials}>{getInitials(name)}</Text>
             </View>
             <View style={styles.userInfoContainer}>
-              <Text style={[styles.inviteName, { color: theme.text }]}>
-                {name}
-              </Text>
-              <Text
+              <Text style={styles.inviteName}>{name}</Text>
+              <View
                 style={[
-                  styles.statusText,
-                  { color: item.is_accepted ? theme.success : theme.warning },
+                  styles.statusChip,
+                  item.is_accepted ? styles.statusChipAccepted : styles.statusChipPending,
                 ]}
               >
-                {(item.status || "pending").charAt(0).toUpperCase() +
-                  (item.status || "pending").slice(1)}
-              </Text>
-              {email ? (
-                <Text style={[styles.inviteEmail, { color: theme.textSecondary }]}>
-                  {email}
+                <Text
+                  style={[
+                    styles.statusText,
+                    item.is_accepted ? styles.statusTextAccepted : styles.statusTextPending,
+                  ]}
+                >
+                  {(item.status || "pending").charAt(0).toUpperCase() +
+                    (item.status || "pending").slice(1)}
                 </Text>
+              </View>
+              {email ? (
+                <Text style={styles.inviteEmail}>{email}</Text>
               ) : null}
             </View>
           </View>
 
           <View style={styles.badgeContainer}>
-            <View
-              style={[
-                styles.badge,
-                { backgroundColor: theme.badge.board.background },
-              ]}
-            >
+            <View style={styles.badge}>
               <MaterialCommunityIcons
                 name="clipboard-list-outline"
                 size={14}
-                color={theme.badge.board.text}
+                color={C.navy}
               />
-              <Text style={[styles.badgeText, { color: theme.badge.board.text }]}>
-                {boardName}
-              </Text>
+              <Text style={styles.badgeText}>{boardName}</Text>
             </View>
           </View>
 
           {activeTab === "received" && isPending ? (
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: theme.button.reject.background },
-                ]}
+                style={[styles.actionButton, styles.declineButton]}
                 onPress={() => handleReject(item.id)}
                 disabled={isUpdating}
               >
-                <Text
-                  style={[
-                    styles.actionButtonText,
-                    { color: theme.button.reject.text },
-                  ]}
-                >
-                  Reject
+                <Text style={[styles.actionButtonText, styles.declineButtonText]}>
+                  Decline
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: theme.button.accept.background },
-                ]}
+                style={[styles.actionButton, styles.acceptButton]}
                 onPress={() => handleAccept(item.id)}
                 disabled={isUpdating}
               >
-                <Text
-                  style={[
-                    styles.actionButtonText,
-                    { color: theme.button.accept.text },
-                  ]}
-                >
+                <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
+                <Text style={[styles.actionButtonText, styles.acceptButtonText]}>
                   Accept
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : activeTab === "sent" && isPending ? (
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.resendButton]}
+                onPress={() => handleResend(item)}
+                disabled={isUpdating}
+              >
+                <MaterialCommunityIcons name="send" size={16} color={C.navy} />
+                <Text style={[styles.actionButtonText, styles.resendButtonText]}>
+                  Resend
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={() => handleRemove(item.id, name)}
+                disabled={isUpdating}
+              >
+                <Text style={[styles.actionButtonText, styles.cancelButtonText]}>
+                  Cancel
                 </Text>
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity
-              style={[
-                styles.singleActionButton,
-                { backgroundColor: `${theme.error}15` },
-              ]}
+              style={styles.singleActionButton}
               onPress={() => handleRemove(item.id, name)}
               disabled={isUpdating}
             >
-              <Text style={[styles.singleActionText, { color: theme.error }]}>
-                {activeTab === "sent"
-                  ? isPending
-                    ? "Cancel Invitation"
-                    : "Remove Access"
-                  : "Leave Board"}
+              <Text style={styles.singleActionText}>
+                {activeTab === "sent" ? "Remove Access" : "Leave Board"}
               </Text>
             </TouchableOpacity>
           )}
@@ -293,28 +316,55 @@ export const InvitationsScreen = ({ navigation, route }) => {
     );
   };
 
+  const renderInviteFriendsCard = () => (
+    <View style={styles.inviteFriendsCard}>
+      <View style={styles.inviteFriendsIcon}>
+        <MaterialCommunityIcons name="account-plus-outline" size={24} color="#FFFFFF" />
+      </View>
+      <View style={styles.inviteFriendsText}>
+        <Text style={styles.inviteFriendsTitle}>Invite Friends</Text>
+        <Text style={styles.inviteFriendsSub}>
+          Share your board link so friends can join and split expenses.
+        </Text>
+      </View>
+      <View style={styles.inviteFriendsActions}>
+        <TouchableOpacity
+          style={styles.inviteFriendsBtn}
+          onPress={handleInviteFriends}
+          activeOpacity={0.85}
+        >
+          <MaterialCommunityIcons name="share-variant" size={16} color="#FFFFFF" />
+          <Text style={styles.inviteFriendsBtnText}>Invite</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.copyLinkBtn}
+          onPress={handleCopyLink}
+          activeOpacity={0.85}
+        >
+          <MaterialCommunityIcons name="content-copy" size={16} color={C.navy} />
+          <Text style={styles.copyLinkBtnText}>Copy Link</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <ScreenLayout header={<Header title={t("invitations")} onBack={() => navigation.goBack()} />}>
-      <View style={[styles.tabRow, { borderBottomColor: `${theme.text}15` }]}>
+      {renderInviteFriendsCard()}
+      <View style={styles.tabRow}>
         {["sent", "received"].map((tab) => (
           <TouchableOpacity
             key={tab}
             style={[
               styles.tabButton,
-              activeTab === tab && {
-                borderBottomColor: theme.primary,
-                borderBottomWidth: 2,
-              },
+              activeTab === tab && styles.tabButtonActive,
             ]}
             onPress={() => setActiveTab(tab)}
           >
             <Text
               style={[
                 styles.tabText,
-                {
-                  color:
-                    activeTab === tab ? theme.primary : theme.textSecondary,
-                },
+                activeTab === tab ? styles.tabTextActive : styles.tabTextInactive,
               ]}
             >
               {tab === "sent" ? t("sentInvites") : t("receivedInvites")}
@@ -332,20 +382,22 @@ export const InvitationsScreen = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
         >
           {invitations.length > 0 ? (
-            invitations.map(renderInvitationCard)
+            invitations.map(renderInviteCard)
           ) : (
             <View style={styles.emptyStateContainer}>
-              <MaterialCommunityIcons
-                name="account-group"
-                size={64}
-                color={theme.textSecondary}
-              />
-              <Text style={[styles.emptyStateTitle, { color: theme.text }]}>
-                {t("noInvitations")}
+              <View style={styles.emptyIconWrap}>
+                <MaterialCommunityIcons
+                  name="account-group-outline"
+                  size={40}
+                  color={C.navy}
+                />
+              </View>
+              <Text style={styles.emptyStateTitle}>
+                {activeTab === "received"
+                  ? "No pending invitations"
+                  : t("noInvitations")}
               </Text>
-              <Text
-                style={[styles.emptyStateText, { color: theme.textSecondary }]}
-              >
+              <Text style={styles.emptyStateText}>
                 {activeTab === "sent"
                   ? t("noSentInvites")
                   : t("noReceivedInvites")}
@@ -359,47 +411,137 @@ export const InvitationsScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  inviteFriendsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    margin: 16,
+    marginBottom: 0,
+    padding: 16,
+    borderRadius: R.lg,
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.border,
+    ...kinetic.shadows.card,
+  },
+  inviteFriendsIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: R.md,
+    backgroundColor: C.navy,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  inviteFriendsText: { flex: 1, minWidth: 0 },
+  inviteFriendsTitle: {
+    ...T.headingSmall,
+    color: C.textPrimary,
+  },
+  inviteFriendsSub: {
+    ...T.caption,
+    color: C.textSecondary,
+    marginTop: 2,
+  },
+  inviteFriendsActions: {
+    flexDirection: "column",
+    gap: 8,
+    flexShrink: 0,
+  },
+  inviteFriendsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: C.coral,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: R.full,
+    minHeight: 36,
+  },
+  inviteFriendsBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  copyLinkBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: C.tintBlue,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: R.full,
+    minHeight: 36,
+  },
+  copyLinkBtnText: {
+    color: C.navy,
+    fontSize: 13,
+    fontWeight: "700",
+  },
   tabRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    marginTop: 16,
+    paddingHorizontal: 16,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 14,
     alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+    minHeight: 48,
+  },
+  tabButtonActive: {
+    borderBottomColor: C.coral,
   },
   tabText: {
     fontSize: 15,
     fontWeight: "600",
   },
-  content: { flex: 1 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
+  tabTextActive: { color: C.navy },
+  tabTextInactive: { color: C.textSecondary },
+  content: { flex: 1, backgroundColor: C.canvas },
+  scrollContent: { padding: 16, paddingBottom: 40 },
   inviteCard: {
-    borderRadius: 16,
+    borderRadius: R.lg,
     borderWidth: 1,
-    marginBottom: 16,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    ...shadowStyle(3),
+    borderColor: C.border,
+    backgroundColor: C.card,
+    marginBottom: 12,
+    ...kinetic.shadows.card,
     overflow: "hidden",
   },
-  inviteCardContent: { padding: 20 },
+  inviteCardContent: { padding: 16 },
   avatarAndInfo: { flexDirection: "row", marginBottom: 12 },
   avatarCircle: {
     width: 52,
     height: 52,
     borderRadius: 26,
+    backgroundColor: C.tintBlue,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 12,
   },
-  avatarInitials: { fontWeight: "600", fontSize: 20 },
+  avatarInitials: { fontWeight: "700", fontSize: 20, color: C.navy },
   userInfoContainer: { flex: 1, justifyContent: "center" },
-  inviteName: { fontSize: 18, fontWeight: "600", marginBottom: 4 },
-  statusText: { fontSize: 12, fontWeight: "800", marginBottom: 4 },
-  inviteEmail: { fontSize: 14 },
+  inviteName: { ...T.headingSmall, color: C.textPrimary, marginBottom: 4 },
+  statusChip: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: R.full,
+    marginBottom: 4,
+  },
+  statusChipPending: { backgroundColor: C.tintAmber },
+  statusChipAccepted: { backgroundColor: C.tintGreen },
+  statusText: { fontSize: 12, fontWeight: "700" },
+  statusTextPending: { color: C.warning },
+  statusTextAccepted: { color: C.success },
+  inviteEmail: { ...T.body, color: C.textSecondary },
   badgeContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   badge: {
     flexDirection: "row",
@@ -407,51 +549,64 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: R.md,
+    backgroundColor: C.subtle,
   },
-  badgeText: { fontSize: 13, fontWeight: "500" },
+  badgeText: { fontSize: 13, fontWeight: "600", color: C.textPrimary },
   buttonContainer: { flexDirection: "row", gap: 12 },
   actionButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: R.md,
+    minHeight: 48,
   },
-  actionButtonText: { fontSize: 15, fontWeight: "600" },
+  actionButtonText: { fontSize: 15, fontWeight: "700" },
+  acceptButton: { backgroundColor: C.coral, ...kinetic.shadows.ctaCoral },
+  acceptButtonText: { color: "#FFFFFF" },
+  declineButton: { backgroundColor: C.subtle },
+  declineButtonText: { color: C.textPrimary },
+  resendButton: { backgroundColor: C.tintBlue },
+  resendButtonText: { color: C.navy },
+  cancelButton: { backgroundColor: "#FEF2F2" },
+  cancelButtonText: { color: C.danger },
   singleActionButton: {
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: R.md,
     alignItems: "center",
-  },
-  singleActionText: { fontSize: 15, fontWeight: "600" },
-  checkmarkContainer: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    zIndex: 1,
-    borderRadius: 16,
-    padding: 6,
-  },
-  loadingContainer: {
-    flex: 1,
+    backgroundColor: "#FEF2F2",
+    minHeight: 48,
     justifyContent: "center",
-    alignItems: "center",
   },
+  singleActionText: { fontSize: 15, fontWeight: "700", color: C.danger },
   emptyStateContainer: {
     alignItems: "center",
     padding: 32,
-    gap: 16,
+    gap: 12,
     minHeight: 320,
   },
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: R.xl,
+    backgroundColor: C.tintBlue,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
   emptyStateTitle: {
-    fontSize: 22,
-    fontWeight: "600",
+    ...T.headingMedium,
+    color: C.textPrimary,
     textAlign: "center",
   },
   emptyStateText: {
-    fontSize: 16,
+    ...T.body,
+    color: C.textSecondary,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 22,
   },
 });
 

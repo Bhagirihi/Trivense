@@ -1,12 +1,12 @@
 import { Platform, StyleSheet } from "react-native";
-import { layout, radii, spacing, typography } from "../../theme/tokens";
+import { kinetic, layout, radii, spacing, typography } from "../../theme/tokens";
 import { shadowStyle } from "../../utils/platformStyles";
 
-// Dashboard screen styles, extracted verbatim from DashboardScreen.js
-// (1,108 lines -> split so the screen file holds logic, not layout).
-// The block only uses static tokens, so it stays a plain StyleSheet.
+// Dashboard screen styles — Kinetic Financial Neo-System (2026-11-13).
+// Navy #003D66 / coral #F97316 palette only; never #0F2B46 / #FF6B2C.
 
 const HOME_SECTION_GAP = spacing.xl;
+const K = kinetic.colors;
 
 export const styles = StyleSheet.create({
   container: {
@@ -17,29 +17,170 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  illustrationContainer: {
+  scroll: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  exploreText: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-    marginTop: 20,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.xs,
+    paddingTop: spacing.md,
   },
   sections: {
     gap: HOME_SECTION_GAP,
     marginTop: spacing.sm,
   },
+  // Greeting row ("Good morning, Dhruv" + streak pill).
+  greetingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  greetingText: {
+    ...kinetic.typography.displayMedium,
+    color: K.textPrimary,
+    flex: 1,
+  },
+  streakPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: K.tintAmber,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+    borderRadius: kinetic.radii.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    minHeight: 32,
+    gap: 4,
+  },
+  streakText: {
+    ...kinetic.typography.captionBold,
+    color: K.warning,
+  },
+  // Header avatar (real user profile initial).
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    ...kinetic.typography.headingMedium,
+    color: K.textInverse,
+  },
+  headerTrailing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+    zIndex: 1,
+  },
+  notificationCount: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  // Monthly budget gauge card.
+  gaugeCard: {
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.lg,
+    padding: spacing.lg,
+    ...kinetic.shadows.card,
+  },
+  gaugeTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  gaugeTitle: {
+    ...kinetic.typography.headingMedium,
+    color: K.textPrimary,
+  },
+  gaugeSafeText: {
+    ...kinetic.typography.captionBold,
+    color: K.textPositive,
+  },
+  gaugeOverText: {
+    ...kinetic.typography.captionBold,
+    color: K.textNegative,
+  },
+  gaugeTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: K.subtle,
+    overflow: "hidden",
+    marginTop: spacing.md,
+  },
+  gaugeFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  gaugeMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: spacing.sm,
+  },
+  gaugeMetaText: {
+    ...kinetic.typography.caption,
+    color: K.textSecondary,
+  },
+  gaugeMetaValue: {
+    ...kinetic.typography.caption,
+    color: K.textPrimary,
+    fontWeight: "700",
+  },
+  // Section headers ("Active Shared Boards", etc.).
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    ...kinetic.typography.headingMedium,
+    color: K.textPrimary,
+  },
+  seeAllButton: {
+    padding: spacing.sm,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  seeAllText: {
+    ...kinetic.typography.bodyMedium,
+    color: K.navy,
+  },
+  boardsList: {
+    gap: spacing.md,
+  },
   transactionsBlock: {
     gap: spacing.sm,
   },
+  // First-board / monthly-budget prompts (kept from before, kinetic restyle).
   firstBoardCard: {
     marginTop: spacing.sm,
     padding: spacing.lg,
@@ -75,6 +216,7 @@ export const styles = StyleSheet.create({
     borderRadius: radii.lg,
     width: "100%",
     justifyContent: "center",
+    minHeight: 48,
   },
   firstBoardButtonText: {
     ...typography.bodyMedium,
@@ -83,141 +225,63 @@ export const styles = StyleSheet.create({
   firstBoardLink: {
     marginTop: spacing.md,
     padding: spacing.xs,
+    minHeight: 44,
+    justifyContent: "center",
   },
   firstBoardLinkText: {
     ...typography.caption,
     fontWeight: "600",
   },
-  scroll: {
-    flex: 1,
-  },
-  headerTrailing: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  headerIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  balanceCard: {
-    padding: Platform.OS === "android" ? spacing.lg : spacing.xl,
-    borderRadius: radii.xl,
-    ...shadowStyle(6),
-  },
-  balanceTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: Platform.OS === "android" ? spacing.md : spacing.lg,
-  },
-  balanceEyebrow: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: spacing.xs,
-  },
-  balanceHero: {
-    color: "#FFFFFF",
-    fontSize: Platform.OS === "android" ? 26 : 30,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-  },
-  balanceStatPill: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: radii.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    alignItems: "flex-end",
-  },
-  balancePillLabel: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  balancePillValue: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  balanceStatsRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-    marginBottom: Platform.OS === "android" ? spacing.md : spacing.lg,
-  },
-  balanceMiniStat: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: radii.md,
-    padding: spacing.md,
-    gap: 4,
-  },
-  balanceMiniLabel: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  balanceMiniValue: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: radii.pill,
-  },
+  // Quick actions: existing 3-tile row (AppCue tour indices 0/1/2).
   quickActions: {
     flexDirection: "row",
     gap: spacing.sm,
   },
-  sectionHeader: {
+  // Design quick actions row 2: New Board / Scan Bill / Nudge.
+  designActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  designAction: {
+    flex: 1,
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.lg,
     alignItems: "center",
-    marginBottom: 16,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+    minHeight: 76,
+    ...kinetic.shadows.card,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  seeAllButton: {
-    padding: 8,
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  profileSection: {
-    flexDirection: "row",
+  designActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: kinetic.radii.md,
     alignItems: "center",
-    gap: 12,
-  },
-  notificationBadge: {
-    position: "absolute",
-    top: -5,
-    right: -5,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
     justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 4,
+    marginBottom: spacing.xs,
   },
-  notificationCount: {
-    color: "#FFFFFF",
-    fontSize: 11,
+  designActionLabel: {
+    ...kinetic.typography.caption,
+    color: K.textPrimary,
     fontWeight: "600",
+    textAlign: "center",
+  },
+  aiBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    backgroundColor: K.navy,
+    borderRadius: kinetic.radii.full,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  aiBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: K.textInverse,
+    letterSpacing: 0.5,
   },
   emptyContainer: {
     flex: 1,
@@ -268,5 +332,12 @@ export const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 12,
     fontWeight: "500",
+  },
+  // Kept for Android/iOS parity in the old balance card (unused by the
+  // kinetic hero, retained so nothing else referencing them breaks).
+  balanceCard: {
+    padding: Platform.OS === "android" ? spacing.lg : spacing.xl,
+    borderRadius: radii.xl,
+    ...shadowStyle(6),
   },
 });

@@ -8,7 +8,6 @@ import {
   RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
 import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
@@ -18,10 +17,19 @@ import { supabase } from "../config/supabase";
 import { showToast } from "../utils/toast";
 import { realTimeSync } from "../services/realTimeSync";
 import { useTranslation } from "../hooks/useTranslation";
-import Card from "../components/common/Card";
-import { SectionLabel } from "../components/ui/UIKit";
-import { layout, radii, spacing, typography } from "../theme/tokens";
+import { kinetic } from "../theme/tokens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// Kinetic redesign (2026-11-13): canvas background, white cards, navy
+// hero banner, coral unread dots, pill tabs All / Unread / Settlements.
+// Data flow unchanged — notificationService + unread-count logic as-is.
+// "Settlements" has no dedicated type in the stored rows (creators only
+// write type "info"/"warning"), so it matches settlement-like rows by
+// type === "settlement" or settle/UPI/paid wording in title + message.
+
+const C = kinetic.colors;
+const T = kinetic.typography;
+const R = kinetic.radii;
 
 const getDateBucket = (dateString) => {
   const date = new Date(dateString);
@@ -59,13 +67,20 @@ const groupNotifications = (items) => {
   return groups;
 };
 
+const isSettlementNotification = (n) => {
+  if (n.type === "settlement") return true;
+  return /settl|upi|\bpaid\b|payment|you owe|you will receive/i.test(
+    `${n.title || ""} ${n.message || ""}`
+  );
+};
+
 export const NotificationScreen = ({ navigation }) => {
-  const { theme } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
 
   const fetchNotifications = useCallback(async (silent = false) => {
     try {
@@ -148,7 +163,20 @@ export const NotificationScreen = ({ navigation }) => {
     [notifications]
   );
 
-  const grouped = useMemo(() => groupNotifications(notifications), [notifications]);
+  const settlementCount = useMemo(
+    () => notifications.filter(isSettlementNotification).length,
+    [notifications]
+  );
+
+  const filtered = useMemo(() => {
+    if (activeTab === "unread") return notifications.filter((n) => !n.read);
+    if (activeTab === "settlements") {
+      return notifications.filter(isSettlementNotification);
+    }
+    return notifications;
+  }, [notifications, activeTab]);
+
+  const grouped = useMemo(() => groupNotifications(filtered), [filtered]);
 
   const sectionMeta = [
     { key: "today", label: t("today") },
@@ -156,11 +184,17 @@ export const NotificationScreen = ({ navigation }) => {
     { key: "earlier", label: "Earlier" },
   ];
 
+  const tabs = [
+    { key: "all", label: "All", count: notifications.length },
+    { key: "unread", label: "Unread", count: unreadCount },
+    { key: "settlements", label: "Settlements", count: settlementCount },
+  ];
+
   const renderUnreadBanner = () => {
     if (unreadCount === 0) return null;
     return (
       <LinearGradient
-        colors={theme.gradient}
+        colors={C.heroGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.unreadBanner}
@@ -173,9 +207,7 @@ export const NotificationScreen = ({ navigation }) => {
             <Text style={styles.unreadBannerTitle} numberOfLines={1}>
               {unreadCount} unread
             </Text>
-            <Text style={styles.unreadBannerSub}>
-              Tap to open details
-            </Text>
+            <Text style={styles.unreadBannerSub}>Tap to open details</Text>
           </View>
         </View>
         <TouchableOpacity
@@ -185,17 +217,53 @@ export const NotificationScreen = ({ navigation }) => {
           accessibilityRole="button"
           accessibilityLabel={t("markAllAsRead")}
         >
-          <MaterialCommunityIcons name="check-all" size={16} color={theme.primary} />
-          <Text style={[styles.markAllBtnText, { color: theme.primary }]}>
-            Mark all
-          </Text>
+          <MaterialCommunityIcons name="check-all" size={16} color={C.navy} />
+          <Text style={styles.markAllBtnText}>Mark all</Text>
         </TouchableOpacity>
       </LinearGradient>
     );
   };
 
+  const renderTabs = () => (
+    <View style={styles.tabRow} accessibilityRole="tablist">
+      {tabs.map((tab) => {
+        const active = activeTab === tab.key;
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tabPill, active && styles.tabPillActive]}
+            onPress={() => setActiveTab(tab.key)}
+            activeOpacity={0.85}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={`${tab.label}, ${tab.count}`}
+          >
+            <Text style={[styles.tabText, active && styles.tabTextActive]}>
+              {tab.label}
+            </Text>
+            <View
+              style={[
+                styles.tabCount,
+                active ? styles.tabCountActive : styles.tabCountInactive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabCountText,
+                  active ? styles.tabCountTextActive : styles.tabCountTextInactive,
+                ]}
+              >
+                {tab.count}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
   const renderNotification = (notification) => {
-    const iconColor = notification.icon_color || theme.primary;
+    const iconColor = notification.icon_color || C.navy;
     const isUnread = !notification.read;
 
     return (
@@ -205,14 +273,10 @@ export const NotificationScreen = ({ navigation }) => {
         onPress={() => handleNotificationPress(notification)}
         style={styles.notificationWrap}
       >
-        <Card
-          padding="small"
+        <View
           style={[
             styles.notificationCard,
-            isUnread && {
-              borderColor: theme.primary,
-              backgroundColor: theme.primaryMuted,
-            },
+            isUnread && styles.notificationCardUnread,
           ]}
         >
           <View style={styles.notificationRow}>
@@ -220,7 +284,7 @@ export const NotificationScreen = ({ navigation }) => {
               <View
                 style={[
                   styles.notificationIcon,
-                  { backgroundColor: `${iconColor}20` },
+                  { backgroundColor: `${iconColor}1A` },
                 ]}
               >
                 <MaterialCommunityIcons
@@ -229,9 +293,7 @@ export const NotificationScreen = ({ navigation }) => {
                   color={iconColor}
                 />
               </View>
-              {isUnread ? (
-                <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
-              ) : null}
+              {isUnread ? <View style={styles.unreadDot} /> : null}
             </View>
 
             <View style={styles.notificationBody}>
@@ -239,53 +301,41 @@ export const NotificationScreen = ({ navigation }) => {
                 <Text
                   style={[
                     styles.notificationTitle,
-                    { color: theme.text },
-                    isUnread && { fontWeight: "700" },
+                    isUnread && styles.notificationTitleUnread,
                   ]}
                   numberOfLines={1}
                 >
                   {notification.title}
                 </Text>
-                <Text style={[styles.timestamp, { color: theme.textMuted }]}>
+                <Text style={styles.timestamp}>
                   {formatNotificationTime(notification.created_at)}
                 </Text>
               </View>
 
-              <Text
-                style={[styles.notificationMessage, { color: theme.textSecondary }]}
-                numberOfLines={2}
-              >
+              <Text style={styles.notificationMessage} numberOfLines={2}>
                 {notification.message}
               </Text>
 
               {notification.trip_name ? (
-                <View
-                  style={[
-                    styles.tripChip,
-                    { backgroundColor: isUnread ? theme.surface : theme.borderLight },
-                  ]}
-                >
+                <View style={styles.tripChip}>
                   <MaterialCommunityIcons
                     name="view-grid-outline"
                     size={14}
-                    color={theme.primary}
+                    color={C.navy}
                   />
-                  <Text
-                    style={[styles.tripName, { color: theme.primary }]}
-                    numberOfLines={1}
-                  >
+                  <Text style={styles.tripName} numberOfLines={1}>
                     {notification.trip_name}
                   </Text>
                   <MaterialCommunityIcons
                     name="chevron-right"
                     size={16}
-                    color={theme.textMuted}
+                    color={C.textTertiary}
                   />
                 </View>
               ) : null}
             </View>
           </View>
-        </Card>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -296,42 +346,55 @@ export const NotificationScreen = ({ navigation }) => {
       if (!items.length) return null;
       return (
         <View key={key} style={styles.section}>
-          <SectionLabel title={label} style={key === "today" ? { marginTop: 0 } : undefined} />
+          <Text style={styles.sectionLabel}>{label}</Text>
           {items.map(renderNotification)}
         </View>
       );
     });
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIconWrap, { backgroundColor: theme.primaryMuted }]}>
-        <MaterialCommunityIcons name="bell-check-outline" size={40} color={theme.primary} />
+  const renderEmptyState = () => {
+    const copy =
+      activeTab === "unread"
+        ? {
+            title: "No unread notifications",
+            message: "You're completely caught up — nothing left to read.",
+          }
+        : activeTab === "settlements"
+          ? {
+              title: "No settlement notifications",
+              message: "Settlement updates will appear here when money moves.",
+            }
+          : {
+              title: t("noNotifications"),
+              message: t("noNotificationsMessage"),
+            };
+    return (
+      <View style={styles.emptyContainer}>
+        <View style={styles.emptyIconWrap}>
+          <MaterialCommunityIcons
+            name="bell-check-outline"
+            size={40}
+            color={C.navy}
+          />
+        </View>
+        <Text style={styles.emptyTitle}>{copy.title}</Text>
+        <Text style={styles.emptyMessage}>{copy.message}</Text>
       </View>
-      <Text style={[styles.emptyTitle, { color: theme.text }]}>
-        {t("noNotifications")}
-      </Text>
-      <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>
-        {t("noNotificationsMessage")}
-      </Text>
-    </View>
-  );
+    );
+  };
 
   const headerRight = (
     <TouchableOpacity
-      style={[
-        styles.headerBtn,
-        {
-          backgroundColor: unreadCount > 0 ? theme.primaryMuted : theme.borderLight,
-          opacity: unreadCount > 0 ? 1 : 0.6,
-        },
-      ]}
+      style={styles.headerBtn}
       onPress={markAllAsRead}
       disabled={unreadCount === 0}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={t("markAllAsRead")}
     >
-      <MaterialCommunityIcons name="check-all" size={18} color={theme.primary} />
+      <MaterialCommunityIcons name="check-all" size={18} color="#FFFFFF" />
       {unreadCount > 0 ? (
-        <View style={[styles.headerBadge, { backgroundColor: theme.primary }]}>
+        <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>
             {unreadCount > 9 ? "9+" : unreadCount}
           </Text>
@@ -354,21 +417,34 @@ export const NotificationScreen = ({ navigation }) => {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: spacing.xxl + insets.bottom },
+          { paddingBottom: 24 + insets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={theme.primary}
-            colors={[theme.primary]}
+            tintColor={C.navy}
+            colors={[C.navy]}
           />
         }
       >
+        {renderTabs()}
+        {unreadCount > 0 ? (
+          <TouchableOpacity
+            style={styles.markAllRow}
+            onPress={markAllAsRead}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("markAllAsRead")}
+          >
+            <MaterialCommunityIcons name="check-all" size={16} color={C.coral} />
+            <Text style={styles.markAllRowText}>{t("markAllAsRead")}</Text>
+          </TouchableOpacity>
+        ) : null}
         {loading && !refreshing ? (
           <AnimatedLoader context="notifications" compact />
-        ) : notifications.length > 0 ? (
+        ) : filtered.length > 0 ? (
           <>
             {renderUnreadBanner()}
             {renderGroupedList()}
@@ -382,18 +458,19 @@ export const NotificationScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
+  scroll: { flex: 1, backgroundColor: C.canvas },
   content: {
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.md,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     flexGrow: 1,
   },
   headerBtn: {
     width: 36,
     height: 36,
-    borderRadius: radii.md,
+    borderRadius: R.md,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
   headerBadge: {
     position: "absolute",
@@ -401,36 +478,101 @@ const styles = StyleSheet.create({
     right: -4,
     minWidth: 18,
     height: 18,
-    borderRadius: radii.pill,
+    borderRadius: R.full,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,
+    backgroundColor: C.coral,
   },
   headerBadgeText: {
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "700",
   },
+  tabRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  tabPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minHeight: 36,
+    borderRadius: R.full,
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  tabPillActive: {
+    backgroundColor: C.navy,
+    borderColor: C.navy,
+  },
+  tabText: {
+    ...T.bodyMedium,
+    color: C.textSecondary,
+    fontWeight: "600",
+  },
+  tabTextActive: {
+    color: "#FFFFFF",
+  },
+  tabCount: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  tabCountActive: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  tabCountInactive: {
+    backgroundColor: C.subtle,
+  },
+  tabCountText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  tabCountTextActive: { color: "#FFFFFF" },
+  tabCountTextInactive: { color: C.textSecondary },
+  markAllRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    minHeight: 36,
+  },
+  markAllRowText: {
+    ...T.bodyMedium,
+    color: C.coral,
+    fontWeight: "700",
+  },
   unreadBanner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    marginBottom: spacing.lg,
-    gap: spacing.md,
+    padding: 16,
+    borderRadius: R.lg,
+    marginBottom: 16,
+    gap: 12,
+    ...kinetic.shadows.elevated,
   },
   unreadBannerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: 12,
     flex: 1,
     minWidth: 0,
   },
   unreadBannerIcon: {
     width: 40,
     height: 40,
-    borderRadius: radii.md,
+    borderRadius: R.md,
     backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
@@ -439,19 +581,17 @@ const styles = StyleSheet.create({
   unreadBannerCopy: {
     flex: 1,
     minWidth: 0,
-    paddingRight: spacing.xs,
+    paddingRight: 4,
   },
   unreadBannerTitle: {
     color: "#FFFFFF",
-    ...typography.label,
+    ...T.bodyMedium,
     fontWeight: "700",
   },
   unreadBannerSub: {
     color: "rgba(255,255,255,0.8)",
-    ...typography.caption,
+    ...T.caption,
     marginTop: 2,
-    fontWeight: "400",
-    flexShrink: 1,
   },
   markAllBtn: {
     flexDirection: "row",
@@ -459,20 +599,40 @@ const styles = StyleSheet.create({
     gap: 4,
     flexShrink: 0,
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: R.full,
+    minHeight: 36,
   },
-  markAllBtnText: { ...typography.caption, fontWeight: "700" },
-  section: { marginBottom: spacing.sm },
-  notificationWrap: { marginBottom: spacing.sm },
-  notificationCard: { overflow: "hidden" },
-  notificationRow: { flexDirection: "row", gap: spacing.md },
+  markAllBtnText: { ...T.caption, fontWeight: "700", color: C.navy },
+  section: { marginBottom: 8 },
+  sectionLabel: {
+    ...T.captionBold,
+    color: C.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  notificationWrap: { marginBottom: 8 },
+  notificationCard: {
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: R.lg,
+    padding: 12,
+    ...kinetic.shadows.card,
+  },
+  notificationCardUnread: {
+    borderColor: C.navy,
+    backgroundColor: C.tintBlue,
+  },
+  notificationRow: { flexDirection: "row", gap: 12 },
   iconCol: { alignItems: "center" },
   notificationIcon: {
     width: 44,
     height: 44,
-    borderRadius: radii.md,
+    borderRadius: R.md,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -480,69 +640,76 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginTop: spacing.xs,
+    marginTop: 4,
+    backgroundColor: C.coral,
   },
   notificationBody: { flex: 1 },
   notificationTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
+    gap: 8,
+    marginBottom: 4,
   },
   notificationTitle: {
-    ...typography.label,
+    ...T.bodyMedium,
+    color: C.textPrimary,
+    fontWeight: "600",
     flex: 1,
   },
-  timestamp: { ...typography.micro, fontWeight: "500" },
+  notificationTitleUnread: {
+    fontWeight: "700",
+  },
+  timestamp: { ...T.captionBold, color: C.textTertiary },
   notificationMessage: {
-    ...typography.caption,
+    ...T.caption,
+    color: C.textSecondary,
     lineHeight: 18,
-    fontWeight: "400",
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   tripChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: 4,
     alignSelf: "flex-start",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    marginTop: spacing.xs,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: R.full,
+    marginTop: 4,
     maxWidth: "100%",
+    backgroundColor: C.subtle,
   },
   tripName: {
-    ...typography.caption,
+    ...T.caption,
     fontWeight: "600",
+    color: C.navy,
     flexShrink: 1,
-  },
-  loadingContainer: {
-    paddingVertical: spacing.xxxl,
-    alignItems: "center",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: spacing.xxxl,
-    paddingHorizontal: spacing.xl,
-    gap: spacing.md,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    gap: 12,
   },
   emptyIconWrap: {
     width: 80,
     height: 80,
-    borderRadius: radii.xl,
+    borderRadius: R.xl,
+    backgroundColor: C.tintBlue,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: spacing.sm,
+    marginBottom: 4,
   },
-  emptyTitle: { ...typography.h3, textAlign: "center" },
+  emptyTitle: { ...T.headingMedium, color: C.textPrimary, textAlign: "center" },
   emptyMessage: {
-    ...typography.body,
+    ...T.body,
+    color: C.textSecondary,
     textAlign: "center",
-    fontWeight: "400",
     lineHeight: 22,
     maxWidth: 280,
   },
 });
+
+export default NotificationScreen;

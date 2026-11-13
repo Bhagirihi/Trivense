@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
-import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
 import { ScreenLayout } from "../components/ScreenLayout";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
@@ -27,11 +26,22 @@ import { PLAN_CATALOG } from "../config/subscriptionPlans";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { devLog } from "../utils/logger";
-import Card from "../components/common/Card";
-import { SectionLabel, SettingsRow } from "../components/ui/UIKit";
-import { layout, radii, spacing, typography } from "../theme/tokens";
+import { showToast } from "../utils/toast";
+import { copyToClipboard } from "../utils/clipboard";
+import { kinetic } from "../theme/tokens";
 import { useFooterScrollPadding } from "../hooks/useFooterScrollPadding";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// Kinetic redesign (2026-11-13): navy gradient hero, white cards on a
+// canvas background, coral CTAs. All data flows are unchanged — avatar
+// upload still sends the picked uri direct to the Supabase avatars
+// bucket, stats still come from the live profile queries below.
+// NOTE: no lifetime "settled" total exists in the profile data
+// (settlements are computed per board, never stored as a total), so the
+// third stat is the real shared-member count, not an invented figure.
+
+const C = kinetic.colors;
+const T = kinetic.typography;
+const R = kinetic.radii;
 
 const getLocaleFromLanguage = (language) => {
   if (language === "hi") return "hi-IN";
@@ -51,9 +61,7 @@ const titleCaseName = (value) => {
 export const ProfileScreen = ({ navigation }) => {
   const route = useRoute();
   const isTabRoot = route.params?.tabRoot === true;
-  const { theme } = useTheme();
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const scrollBottomPadding = useFooterScrollPadding(0, isTabRoot);
   const { plan, isPremium, paymentsEnabled } = useSubscription();
   const { language } = useAppSettings();
@@ -228,6 +236,25 @@ export const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  const handleCopyUpi = () => {
+    if (!userProfile?.upi_id) return;
+    copyToClipboard(userProfile.upi_id);
+    showToast.success(t("copied"), "UPI ID copied");
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Logout error:", error);
+        showToast.error(t("error"), t("failedToLogOut"));
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      showToast.error(t("error"), t("unexpectedErrorOccurred"));
+    }
+  };
+
   const displayName =
     titleCaseName(userProfile?.full_name) ||
     titleCaseName(session?.user?.user_metadata?.full_name) ||
@@ -235,166 +262,166 @@ export const ProfileScreen = ({ navigation }) => {
   const displayEmail =
     userProfile?.email_address || session?.user?.email || "No email";
   const planLabel = t(PLAN_CATALOG[plan]?.nameKey || "planFree");
+  const memberSince = (() => {
+    const date = session?.user?.created_at || userProfile?.created_at;
+    return date
+      ? new Date(date).toLocaleDateString(locale, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : "—";
+  })();
 
-  const renderIdentity = () => (
-    <View style={styles.identityBlock}>
-      <TouchableOpacity
-        onPress={pickAndUploadImage}
-        activeOpacity={0.85}
-        style={styles.avatarPress}
-      >
-        <View style={[styles.avatarRing, { borderColor: theme.primary }]}>
-          <View
-            style={[styles.avatar, { backgroundColor: theme.primaryMuted }]}
-          >
-            {userProfile?.avatar_url ? (
-              <Image
-                source={{ uri: userProfile.avatar_url }}
-                style={styles.avatarImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <Text style={[styles.avatarInitials, { color: theme.primary }]}>
-                {displayName
-                  .split(" ")
-                  .slice(0, 2)
-                  .map((p) => p[0])
-                  .join("")
-                  .toUpperCase() || "T"}
-              </Text>
-            )}
+  const renderHero = () => (
+    <LinearGradient
+      colors={C.heroGradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.hero}
+    >
+      <View style={styles.heroRow}>
+        <TouchableOpacity
+          onPress={pickAndUploadImage}
+          activeOpacity={0.85}
+          style={styles.avatarPress}
+          accessibilityLabel="Change profile photo"
+        >
+          <View style={styles.avatarRing}>
+            <View style={styles.avatar}>
+              {userProfile?.avatar_url ? (
+                <Image
+                  source={{ uri: userProfile.avatar_url }}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text style={styles.avatarInitials}>
+                  {displayName
+                    .split(" ")
+                    .slice(0, 2)
+                    .map((p) => p[0])
+                    .join("")
+                    .toUpperCase() || "T"}
+                </Text>
+              )}
+            </View>
+            <View style={styles.cameraBadge}>
+              <MaterialCommunityIcons name="camera" size={12} color="#FFFFFF" />
+            </View>
           </View>
-          <View
-            style={[
-              styles.cameraBadge,
-              { backgroundColor: theme.primary, borderColor: theme.surface },
-            ]}
-          >
-            <MaterialCommunityIcons name="camera" size={12} color="#FFFFFF" />
-          </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
 
-      {isEditing ? (
-        <View style={styles.editPanel}>
-          <TextInput
-            style={[
-              styles.editInput,
-              {
-                color: theme.text,
-                borderColor: theme.border,
-                backgroundColor: theme.inputBackground,
-              },
-            ]}
-            value={editFullName}
-            onChangeText={setEditFullName}
-            placeholder="Full name"
-            placeholderTextColor={theme.textMuted}
-            autoCapitalize="words"
-          />
-          <Text style={[styles.emailText, { color: theme.textSecondary }]}>
-            {displayEmail}
-          </Text>
-          <TextInput
-            style={[
-              styles.editInput,
-              {
-                color: theme.text,
-                borderColor: theme.border,
-                backgroundColor: theme.inputBackground,
-              },
-            ]}
-            value={editMobile}
-            onChangeText={setEditMobile}
-            placeholder="Mobile"
-            placeholderTextColor={theme.textMuted}
-            keyboardType="phone-pad"
-          />
-          <TextInput
-            style={[
-              styles.editInput,
-              {
-                color: theme.text,
-                borderColor: theme.border,
-                backgroundColor: theme.inputBackground,
-              },
-            ]}
-            value={editUpiId}
-            onChangeText={setEditUpiId}
-            placeholder={t("upiIdPlaceholder")}
-            placeholderTextColor={theme.textMuted}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <View style={styles.editActions}>
-            <TouchableOpacity
-              style={[styles.editBtn, { backgroundColor: theme.borderLight }]}
-              onPress={() => setIsEditing(false)}
-              disabled={savingProfile}
-            >
-              <Text style={[styles.editBtnText, { color: theme.text }]}>
-                {t("cancel")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.editBtn, { backgroundColor: theme.primary }]}
-              onPress={handleSaveProfile}
-              disabled={savingProfile}
-            >
-              <Text style={[styles.editBtnText, { color: theme.white }]}>
-                {savingProfile ? "..." : t("save")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.identityText}>
-          <Text style={[styles.nameText, { color: theme.text }]} numberOfLines={1}>
+        <View style={styles.heroText}>
+          <Text style={styles.nameText} numberOfLines={1}>
             {displayName}
           </Text>
-          <Text
-            style={[styles.emailText, { color: theme.textSecondary }]}
-            numberOfLines={1}
-          >
+          <Text style={styles.emailText} numberOfLines={1}>
             {displayEmail}
           </Text>
           {userProfile?.mobile ? (
-            <Text style={[styles.metaText, { color: theme.textMuted }]}>
-              {userProfile.mobile}
-            </Text>
+            <Text style={styles.metaText}>{userProfile.mobile}</Text>
           ) : null}
-          {userProfile?.upi_id ? (
-            <Text style={[styles.metaText, { color: theme.textMuted }]}>
-              {userProfile.upi_id}
-            </Text>
-          ) : null}
+          <Text style={styles.metaText}>Member since {memberSince}</Text>
           <View
             style={[
               styles.planChip,
-              {
-                backgroundColor: isPremium
-                  ? "rgba(201,162,39,0.15)"
-                  : theme.primaryMuted,
-              },
+              { backgroundColor: isPremium ? "#F97316" : "rgba(255,255,255,0.16)" },
             ]}
           >
             <MaterialCommunityIcons
               name={isPremium ? "crown" : "shield-account-outline"}
               size={13}
-              color={isPremium ? "#B8960C" : theme.primary}
+              color="#FFFFFF"
             />
-            <Text
-              style={[
-                styles.planChipText,
-                { color: isPremium ? "#8A7018" : theme.primary },
-              ]}
-            >
-              {planLabel}
-            </Text>
+            <Text style={styles.planChipText}>{planLabel}</Text>
           </View>
         </View>
-      )}
-    </View>
+      </View>
+
+      {userProfile?.upi_id ? (
+        <View style={styles.upiRow}>
+          <MaterialCommunityIcons name="shield-check-outline" size={16} color="#FFFFFF" />
+          <Text style={styles.upiText} numberOfLines={1}>
+            {userProfile.upi_id}
+          </Text>
+          <TouchableOpacity
+            onPress={handleCopyUpi}
+            style={styles.copyBtn}
+            accessibilityLabel="Copy UPI ID"
+          >
+            <MaterialCommunityIcons name="content-copy" size={14} color="#FFFFFF" />
+            <Text style={styles.copyText}>Copy</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      <TouchableOpacity
+        style={styles.editProfileBtn}
+        onPress={handleEditProfile}
+        activeOpacity={0.85}
+        accessibilityLabel={isEditing ? t("cancel") : "Edit profile"}
+      >
+        <MaterialCommunityIcons
+          name={isEditing ? "close" : "pencil-outline"}
+          size={16}
+          color={C.navy}
+        />
+        <Text style={styles.editProfileText}>
+          {isEditing ? t("cancel") : "Edit Profile"}
+        </Text>
+      </TouchableOpacity>
+
+      {isEditing ? (
+        <View style={styles.editPanel}>
+          <TextInput
+            style={styles.editInput}
+            value={editFullName}
+            onChangeText={setEditFullName}
+            placeholder="Full name"
+            placeholderTextColor="rgba(255,255,255,0.6)"
+            autoCapitalize="words"
+          />
+          <TextInput
+            style={styles.editInput}
+            value={editMobile}
+            onChangeText={setEditMobile}
+            placeholder="Mobile"
+            placeholderTextColor="rgba(255,255,255,0.6)"
+            keyboardType="phone-pad"
+          />
+          <TextInput
+            style={styles.editInput}
+            value={editUpiId}
+            onChangeText={setEditUpiId}
+            placeholder={t("upiIdPlaceholder")}
+            placeholderTextColor="rgba(255,255,255,0.6)"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <View style={styles.editActions}>
+            <TouchableOpacity
+              style={[styles.editBtn, styles.editBtnGhost]}
+              onPress={() => setIsEditing(false)}
+              disabled={savingProfile}
+            >
+              <Text style={[styles.editBtnText, { color: "#FFFFFF" }]}>
+                {t("cancel")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editBtn, styles.editBtnSolid]}
+              onPress={handleSaveProfile}
+              disabled={savingProfile}
+            >
+              <Text style={[styles.editBtnText, { color: "#FFFFFF" }]}>
+                {savingProfile ? "..." : t("save")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
+    </LinearGradient>
   );
 
   const renderPremiumBanner = () => {
@@ -406,13 +433,13 @@ export const ProfileScreen = ({ navigation }) => {
         style={styles.premiumWrap}
       >
         <LinearGradient
-          colors={theme.gradient}
+          colors={C.coralGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.premiumBanner}
         >
           <View style={styles.premiumLeft}>
-            <MaterialCommunityIcons name="crown" size={18} color="#E8C547" />
+            <MaterialCommunityIcons name="crown" size={18} color="#FFFFFF" />
             <View style={{ flex: 1 }}>
               <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
               <Text style={styles.premiumSub}>
@@ -428,259 +455,193 @@ export const ProfileScreen = ({ navigation }) => {
 
   const renderStats = () => {
     const stats = [
+      { label: "Boards", value: String(totalBoards), icon: "view-grid-outline" },
       {
-        icon: "cash-multiple",
         label: "Expenses",
         value: formatCurrency(totalExpenses),
-        color: theme.primary,
+        icon: "cash-multiple",
       },
       {
-        icon: "view-grid-outline",
-        label: "Boards",
-        value: String(totalBoards),
-        color: theme.accent,
-      },
-      {
-        icon: "tag-outline",
-        label: "Categories",
-        value: String(totalCategories),
-        color: theme.warning,
-      },
-      {
-        icon: "account-group-outline",
         label: "Members",
         value: String(totalSharedMembers),
-        color: theme.info,
+        icon: "account-group-outline",
       },
     ];
 
     return (
-      <View style={styles.section}>
-        <SectionLabel title="Overview" style={{ marginTop: 0, marginBottom: spacing.sm }} />
-        <View
-          style={[
-            styles.statsCard,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-        >
-          {stats.map((stat, index) => (
-            <View
-              key={stat.label}
-              style={[
-                styles.statCell,
-                index % 2 === 0 && styles.statCellLeft,
-                index < 2 && {
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: theme.border,
-                },
-                index % 2 === 0 && {
-                  borderRightWidth: StyleSheet.hairlineWidth,
-                  borderRightColor: theme.border,
-                },
-              ]}
-            >
-              <View
-                style={[styles.statIcon, { backgroundColor: `${stat.color}14` }]}
-              >
-                <MaterialCommunityIcons
-                  name={stat.icon}
-                  size={16}
-                  color={stat.color}
-                />
-              </View>
-              <Text style={[styles.statValue, { color: theme.text }]} numberOfLines={1}>
-                {stat.value}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.textMuted }]}>
-                {stat.label}
-              </Text>
+      <View style={styles.statsCard}>
+        {stats.map((stat, index) => (
+          <View
+            key={stat.label}
+            style={[
+              styles.statCell,
+              index < stats.length - 1 && styles.statCellDivider,
+            ]}
+          >
+            <View style={styles.statIcon}>
+              <MaterialCommunityIcons name={stat.icon} size={18} color={C.navy} />
             </View>
-          ))}
+            <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+              {stat.value}
+            </Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderMenuRow = ({ icon, iconBg, title, subtitle, onPress, isLast, danger }) => (
+    <TouchableOpacity
+      style={[styles.menuRow, !isLast && styles.menuRowDivider]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={[styles.menuIcon, { backgroundColor: iconBg }]}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={20}
+          color={danger ? C.danger : C.navy}
+        />
+      </View>
+      <View style={styles.menuText}>
+        <Text style={[styles.menuTitle, danger && { color: C.danger }]}>{title}</Text>
+        {subtitle ? <Text style={styles.menuSubtitle}>{subtitle}</Text> : null}
+      </View>
+      {onPress ? (
+        <MaterialCommunityIcons name="chevron-right" size={20} color={C.textTertiary} />
+      ) : null}
+    </TouchableOpacity>
+  );
+
+  const renderAccountMeta = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>Account</Text>
+      <View style={styles.listCard}>
+        {renderMenuRow({
+          icon: "calendar-outline",
+          iconBg: C.tintBlue,
+          title: "Member since",
+          subtitle: memberSince,
+          onPress: undefined,
+          isLast: false,
+        })}
+        {renderMenuRow({
+          icon: "clock-outline",
+          iconBg: C.tintAmber,
+          title: "Last login",
+          subtitle: formatDateTime(
+            session?.user?.last_sign_in_at || userProfile?.updated_at,
+            locale
+          ),
+          onPress: undefined,
+          isLast: false,
+        })}
+        <View style={[styles.menuRow, styles.menuRowLast]}>
+          <View style={[styles.menuIcon, { backgroundColor: "#FEE2E2" }]}>
+            <MaterialCommunityIcons name="google" size={20} color="#DB4437" />
+          </View>
+          <View style={styles.menuText}>
+            <Text style={styles.menuTitle}>Google account</Text>
+            <Text style={styles.menuSubtitle}>
+              {isGoogleConnected ? "Connected" : "Not connected"}
+            </Text>
+          </View>
+          {!isGoogleConnected ? (
+            <TouchableOpacity
+              style={styles.connectPill}
+              onPress={async () => {
+                try {
+                  const { error } = await signInWithGoogle();
+                  if (
+                    error &&
+                    !error?.message?.toLowerCase().includes("cancelled")
+                  ) {
+                    Alert.alert(
+                      t("error"),
+                      error?.message || "Failed to connect Google"
+                    );
+                  }
+                } catch (e) {
+                  Alert.alert(
+                    t("error"),
+                    e?.message || "Failed to connect Google"
+                  );
+                }
+              }}
+            >
+              <Text style={styles.connectPillText}>Connect</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.connectedBadge}>
+              <Text style={styles.connectedText}>Active</Text>
+            </View>
+          )}
         </View>
       </View>
-    );
-  };
+    </View>
+  );
 
-  const renderAccountMeta = () => {
-    const memberSince = (() => {
-      const date = session?.user?.created_at || userProfile?.created_at;
-      return date
-        ? new Date(date).toLocaleDateString(locale, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })
-        : "—";
-    })();
-
-    return (
-      <View style={styles.section}>
-        <SectionLabel title="Account" style={{ marginBottom: spacing.sm }} />
-        <Card padding="none" variant="flat" style={styles.listCard}>
-          <SettingsRow
-            icon="calendar-outline"
-            iconColor={theme.primary}
-            title="Member since"
-            subtitle={memberSince}
-            showChevron={false}
-          />
-          <SettingsRow
-            icon="clock-outline"
-            iconColor={theme.accent}
-            title="Last login"
-            subtitle={formatDateTime(
-              session?.user?.last_sign_in_at || userProfile?.updated_at,
-              locale
-            )}
-            showChevron={false}
-          />
-          <SettingsRow
-            icon="google"
-            iconColor="#DB4437"
-            iconBg="#FEE2E2"
-            title="Google account"
-            subtitle={isGoogleConnected ? "Connected" : "Not connected"}
-            showChevron={false}
-            rightElement={
-              !isGoogleConnected ? (
-                <TouchableOpacity
-                  style={[styles.connectPill, { backgroundColor: theme.primary }]}
-                  onPress={async () => {
-                    try {
-                      const { error } = await signInWithGoogle();
-                      if (
-                        error &&
-                        !error?.message?.toLowerCase().includes("cancelled")
-                      ) {
-                        Alert.alert(
-                          t("error"),
-                          error?.message || "Failed to connect Google"
-                        );
-                      }
-                    } catch (e) {
-                      Alert.alert(
-                        t("error"),
-                        e?.message || "Failed to connect Google"
-                      );
-                    }
-                  }}
-                >
-                  <Text style={styles.connectPillText}>Connect</Text>
-                </TouchableOpacity>
-              ) : (
-                <View
-                  style={[
-                    styles.connectedBadge,
-                    { backgroundColor: `${theme.success}18` },
-                  ]}
-                >
-                  <Text style={[styles.connectedText, { color: theme.success }]}>
-                    Active
-                  </Text>
-                </View>
-              )
-            }
-            isLast
-          />
-        </Card>
+  const renderQuickLinks = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>Menu</Text>
+      <View style={styles.listCard}>
+        {renderMenuRow({
+          icon: "cog-outline",
+          iconBg: C.tintBlue,
+          title: "Settings",
+          subtitle: "Budget, currency & preferences",
+          onPress: () => navigation.navigate("Settings"),
+        })}
+        {renderMenuRow({
+          icon: "bell-outline",
+          iconBg: C.tintAmber,
+          title: "Notifications",
+          subtitle: "Alerts and reminders",
+          onPress: () => navigation.navigate("Notification"),
+        })}
+        {renderMenuRow({
+          icon: "account-group-outline",
+          iconBg: C.tintGreen,
+          title: "Invitations",
+          subtitle: "Board invites sent & received",
+          onPress: () => navigation.navigate("Invitations"),
+        })}
+        {renderMenuRow({
+          icon: "help-circle-outline",
+          iconBg: C.subtle,
+          title: "Help & Support",
+          subtitle: "Get help when you need it",
+          onPress: () => {
+            Alert.alert("Coming Soon", "Support features will be available soon!");
+          },
+        })}
+        {renderMenuRow({
+          icon: "information-outline",
+          iconBg: C.subtle,
+          title: "About",
+          subtitle: "Trivense v1.0.0",
+          onPress: () => {
+            Alert.alert("About", `Trivense v1.0.0\n\n${t("brandTagline")}`);
+          },
+          isLast: true,
+        })}
       </View>
-    );
-  };
-
-  const renderQuickLinks = () => {
-    const items = [
-      {
-        icon: "cog-outline",
-        iconColor: theme.primary,
-        title: "Settings",
-        subtitle: "Budget, currency & preferences",
-        onPress: () => navigation.navigate("Settings"),
-      },
-      {
-        icon: "bell-outline",
-        iconColor: theme.warning,
-        title: "Notifications",
-        subtitle: "Alerts and reminders",
-        onPress: () => navigation.navigate("Notification"),
-      },
-      {
-        icon: "help-circle-outline",
-        iconColor: theme.info,
-        title: "Help & Support",
-        subtitle: "Get help when you need it",
-        onPress: () => {
-          Alert.alert("Coming Soon", "Support features will be available soon!");
-        },
-      },
-      {
-        icon: "information-outline",
-        iconColor: theme.textSecondary,
-        title: "About",
-        subtitle: "Trivense v1.0.0",
-        onPress: () => {
-          Alert.alert("About", `Trivense v1.0.0\n\n${t("brandTagline")}`);
-        },
-        isLast: true,
-      },
-    ];
-
-    return (
-      <View style={styles.section}>
-        <SectionLabel title="Quick links" style={{ marginBottom: spacing.sm }} />
-        <Card padding="none" variant="flat" style={styles.listCard}>
-          {items.map((item, index) => (
-            <SettingsRow
-              key={item.title}
-              icon={item.icon}
-              iconColor={item.iconColor}
-              title={item.title}
-              subtitle={item.subtitle}
-              onPress={item.onPress}
-              isLast={item.isLast || index === items.length - 1}
-            />
-          ))}
-        </Card>
-      </View>
-    );
-  };
+    </View>
+  );
 
   const handleBack = () => {
     if (navigation.canGoBack()) navigation.goBack();
     else navigation.navigate("Dashboard");
   };
 
-  const editButton = (
-    <TouchableOpacity
-      onPress={handleEditProfile}
-      style={[
-        styles.editHeaderBtn,
-        { backgroundColor: "rgba(255,255,255,0.12)" },
-      ]}
-      accessibilityLabel={isEditing ? t("cancel") : "Edit profile"}
-    >
-      <MaterialCommunityIcons
-        name={isEditing ? "close" : "pencil-outline"}
-        size={18}
-        color={theme.headerText || "#FFFFFF"}
-      />
-    </TouchableOpacity>
-  );
-
-  const profileHeader = (
-    <Header
-      title={t("profile")}
-      onBack={handleBack}
-      rightComponent={loading ? null : editButton}
-    />
-  );
-
   if (loading) {
     return (
       <ScreenLayout
         navigation={navigation}
-        footerRoute={isTabRoot ? "Profile" : null}
+        footerRoute={null}
         showAdBanner={false}
-        header={profileHeader}
+        header={<Header title={t("profile")} onBack={handleBack} />}
       >
         <AnimatedLoader context="profile" />
       </ScreenLayout>
@@ -690,24 +651,51 @@ export const ProfileScreen = ({ navigation }) => {
   return (
     <ScreenLayout
       navigation={navigation}
-      footerRoute={isTabRoot ? "Profile" : null}
+      footerRoute={null}
       showAdBanner={false}
-      header={profileHeader}
+      header={
+        <Header
+          title={t("profile")}
+          onBack={handleBack}
+          rightComponent={
+            <TouchableOpacity
+              onPress={handleEditProfile}
+              style={styles.editHeaderBtn}
+              accessibilityLabel={isEditing ? t("cancel") : "Edit profile"}
+            >
+              <MaterialCommunityIcons
+                name={isEditing ? "close" : "pencil-outline"}
+                size={18}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          }
+        />
+      }
     >
       <ScrollView
         style={styles.content}
-        contentContainerStyle={{
-          paddingBottom: isTabRoot
-            ? scrollBottomPadding
-            : spacing.xxl + insets.bottom,
-        }}
+        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
         showsVerticalScrollIndicator={false}
       >
-        {renderIdentity()}
+        {renderHero()}
         {renderPremiumBanner()}
         {renderStats()}
+        <Text style={[styles.sectionLabel, { marginTop: 4 }]}>
+          Overview · {totalCategories} categories
+        </Text>
         {renderAccountMeta()}
         {renderQuickLinks()}
+        <TouchableOpacity
+          testID="profile-logout-button"
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.85}
+        >
+          <MaterialCommunityIcons name="logout" size={20} color={C.danger} />
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+        <Text style={styles.versionText}>Trivense v1.0.0</Text>
       </ScrollView>
     </ScreenLayout>
   );
@@ -716,42 +704,45 @@ export const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingHorizontal: layout.screenPadding,
+    paddingHorizontal: 16,
+    backgroundColor: C.canvas,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
+  hero: {
+    borderRadius: R.xl,
+    padding: 20,
+    marginTop: 16,
+    marginBottom: 16,
+    ...kinetic.shadows.elevated,
+  },
+  heroRow: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: 16,
   },
-  loadingText: { ...typography.caption },
-  identityBlock: {
-    alignItems: "center",
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  avatarPress: { marginBottom: spacing.md },
+  avatarPress: { flexShrink: 0 },
   avatarRing: {
     padding: 3,
     borderRadius: 999,
     borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.5)",
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.16)",
   },
   avatarImage: {
     width: "100%",
     height: "100%",
   },
   avatarInitials: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
-    letterSpacing: 0.5,
+    color: "#FFFFFF",
   },
   cameraBadge: {
     position: "absolute",
@@ -763,81 +754,137 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
+    borderColor: C.navy,
+    backgroundColor: C.coral,
   },
-  identityText: {
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: spacing.md,
+  heroText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   nameText: {
-    ...typography.h2,
-    fontSize: 24,
-    lineHeight: 30,
-    letterSpacing: -0.3,
-    textAlign: "center",
+    ...T.displayMedium,
+    color: "#FFFFFF",
   },
   emailText: {
-    fontSize: 13,
-    fontWeight: "500",
-    textAlign: "center",
+    ...T.body,
+    color: "rgba(255,255,255,0.8)",
   },
   metaText: {
-    fontSize: 12,
-    textAlign: "center",
+    ...T.caption,
+    color: "rgba(255,255,255,0.65)",
   },
   planChip: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     gap: 5,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
+    marginTop: 8,
+    paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: radii.pill,
+    borderRadius: R.full,
   },
   planChipText: {
     fontSize: 12,
     fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  upiRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: R.md,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  upiText: {
+    ...T.bodyMedium,
+    color: "#FFFFFF",
+    flex: 1,
+  },
+  copyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: R.full,
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  copyText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  editProfileBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: R.md,
+    backgroundColor: "#FFFFFF",
+    minHeight: 48,
+  },
+  editProfileText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: C.navy,
   },
   editPanel: {
     width: "100%",
-    marginTop: spacing.xs,
+    marginTop: 16,
   },
   editInput: {
     borderWidth: 1,
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-    ...typography.body,
-    textAlign: "center",
+    borderColor: "rgba(255,255,255,0.4)",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: R.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    ...T.body,
+    color: "#FFFFFF",
   },
   editActions: {
     flexDirection: "row",
-    gap: spacing.md,
-    marginTop: spacing.xs,
+    gap: 12,
+    marginTop: 4,
     justifyContent: "center",
   },
   editBtn: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: R.md,
     minWidth: 100,
+    minHeight: 44,
     alignItems: "center",
+    justifyContent: "center",
   },
-  editBtnText: { ...typography.label },
-  premiumWrap: { marginBottom: spacing.lg },
+  editBtnGhost: {
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  editBtnSolid: {
+    backgroundColor: C.coral,
+  },
+  editBtnText: { ...T.bodyMedium, fontWeight: "700" },
+  premiumWrap: { marginBottom: 16 },
   premiumBanner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: R.lg,
+    ...kinetic.shadows.ctaCoral,
   },
   premiumLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: 12,
     flex: 1,
   },
   premiumTitle: {
@@ -846,53 +893,107 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   premiumSub: {
-    color: "rgba(255,255,255,0.75)",
+    color: "rgba(255,255,255,0.8)",
     fontSize: 12,
     marginTop: 1,
   },
-  section: { marginBottom: spacing.lg },
   statsCard: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    borderRadius: radii.lg,
+    backgroundColor: C.card,
+    borderRadius: R.lg,
     borderWidth: 1,
+    borderColor: C.border,
+    marginBottom: 16,
     overflow: "hidden",
+    ...kinetic.shadows.card,
   },
   statCell: {
-    width: "50%",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    gap: 4,
   },
-  statCellLeft: {},
+  statCellDivider: {
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: C.border,
+  },
   statIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: radii.sm,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: C.tintBlue,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: spacing.sm,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.2,
-    marginBottom: 2,
+    ...T.headingSmall,
+    color: C.textPrimary,
+    textAlign: "center",
   },
   statLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.2,
+    ...T.captionBold,
+    color: C.textTertiary,
     textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  section: { marginBottom: 16 },
+  sectionLabel: {
+    ...T.captionBold,
+    color: C.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   listCard: {
+    backgroundColor: C.card,
     borderWidth: 1,
-    borderRadius: radii.lg,
+    borderColor: C.border,
+    borderRadius: R.lg,
     overflow: "hidden",
+    ...kinetic.shadows.card,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 56,
+  },
+  menuRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.border,
+  },
+  menuRowLast: {},
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  menuText: { flex: 1, minWidth: 0 },
+  menuTitle: {
+    ...T.bodyMedium,
+    color: C.textPrimary,
+    fontWeight: "600",
+  },
+  menuSubtitle: {
+    ...T.caption,
+    color: C.textSecondary,
+    marginTop: 2,
   },
   connectPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: R.full,
+    backgroundColor: C.navy,
+    minHeight: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
   connectPillText: {
     color: "#FFFFFF",
@@ -900,17 +1001,43 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   connectedBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: R.full,
+    backgroundColor: C.tintGreen,
   },
-  connectedText: { fontSize: 12, fontWeight: "700" },
+  connectedText: { fontSize: 12, fontWeight: "700", color: C.success },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 16,
+    borderRadius: R.lg,
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    marginBottom: 12,
+    minHeight: 52,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: C.danger,
+  },
+  versionText: {
+    ...T.caption,
+    color: C.textTertiary,
+    textAlign: "center",
+    marginBottom: 8,
+  },
   editHeaderBtn: {
     width: 36,
     height: 36,
-    borderRadius: radii.md,
+    borderRadius: R.md,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
 });
 

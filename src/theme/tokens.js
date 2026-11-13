@@ -45,9 +45,142 @@ export function footerScrollPadding(bottomInset = 0) {
 }
 
 /**
- * Brand palette — fintech reference (dark header, navy accent, white body).
- * Primary accent: #003D66 · Header: #000000 · Body: #FFFFFF · Muted text: #888888
+ * Kinetic Financial Neo-System tokens (Stitch redesign, 2026-11-13).
+ * Source of truth: trivense_handoff_token_specifications.md + kinetic DESIGN.md.
+ * PALETTE DECISION (live-review conflict 1): Handoff palette wins —
+ * navy #003D66, coral #F97316 → #EA580C. Never #0F2B46 / #FF6B2C.
+ * These are ADDITIVE — every export above stays as-is for existing callers.
  */
+export const kinetic = {
+  colors: {
+    navy: "#003D66",
+    navyDark: "#002844",
+    navyLight: "#0A5585",
+    coral: "#F97316",
+    coralLight: "#FB923C",
+    coralDark: "#EA580C",
+    success: "#16A34A",
+    whatsapp: "#25D366",
+    whatsappDark: "#128C7E",
+    warning: "#D97706",
+    danger: "#DC2626",
+    upiBlue: "#0284C7",
+    canvas: "#F8FAFC",
+    card: "#FFFFFF",
+    subtle: "#F1F5F9",
+    tintBlue: "#EFF6FF",
+    tintGreen: "#F0FDF4",
+    tintAmber: "#FFFBEB",
+    border: "#E2E8F0",
+    borderStrong: "#CBD5E1",
+    textPrimary: "#0F172A",
+    textSecondary: "#475569",
+    textTertiary: "#94A3B8",
+    textInverse: "#FFFFFF",
+    textPositive: "#15803D",
+    textNegative: "#B91C1C",
+    heroGradient: ["#002847", "#003D66", "#004D80"],
+    coralGradient: ["#FB923C", "#EA580C"],
+    whatsappGradient: ["#25D366", "#128C7E"],
+  },
+  fonts: {
+    jakartaRegular: "PlusJakartaSans_400Regular",
+    jakartaMedium: "PlusJakartaSans_500Medium",
+    jakartaSemiBold: "PlusJakartaSans_600SemiBold",
+    jakartaBold: "PlusJakartaSans_700Bold",
+    jakartaExtraBold: "PlusJakartaSans_800ExtraBold",
+    interRegular: "Inter_Regular",
+    interMedium: "Inter_Medium",
+    interBold: "Inter_Bold",
+  },
+  typography: {
+    displayLarge: {
+      fontFamily: "PlusJakartaSans_800ExtraBold",
+      fontSize: 32,
+      lineHeight: 38,
+    },
+    displayMedium: {
+      fontFamily: "PlusJakartaSans_700Bold",
+      fontSize: 24,
+      lineHeight: 30,
+    },
+    headingLarge: {
+      fontFamily: "PlusJakartaSans_700Bold",
+      fontSize: 20,
+      lineHeight: 26,
+    },
+    headingMedium: {
+      fontFamily: "PlusJakartaSans_600SemiBold",
+      fontSize: 17,
+      lineHeight: 22,
+    },
+    headingSmall: {
+      fontFamily: "PlusJakartaSans_600SemiBold",
+      fontSize: 15,
+      lineHeight: 20,
+    },
+    body: { fontFamily: "Inter_Regular", fontSize: 14, lineHeight: 20 },
+    bodyMedium: { fontFamily: "Inter_Medium", fontSize: 14, lineHeight: 20 },
+    caption: { fontFamily: "Inter_Medium", fontSize: 12, lineHeight: 16 },
+    captionBold: { fontFamily: "Inter_Bold", fontSize: 11, lineHeight: 14 },
+  },
+  radii: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    full: 9999,
+  },
+  spacing: {
+    "2xs": 2,
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    "2xl": 24,
+    "3xl": 32,
+  },
+  shadows: {
+    card: {
+      shadowColor: "#0F172A",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06,
+      shadowRadius: 3,
+      elevation: 1,
+    },
+    ctaCoral: {
+      shadowColor: "#F97316",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      elevation: 6,
+    },
+    ctaWhatsapp: {
+      shadowColor: "#25D366",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
+      elevation: 6,
+    },
+    elevated: {
+      shadowColor: "#0F172A",
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 25,
+      elevation: 8,
+    },
+  },
+  /** Gauge fill by budget usage: <70% green, 70–90% amber, >90% red. */
+  gaugeColor(usagePercent) {
+    const p = Number(usagePercent) || 0;
+    if (p >= 90) return "#E53935";
+    if (p >= 70) return "#F59E0B";
+    return "#16A34A";
+  },
+};
+
 export const brand = {
   light: {
     primary: "#003D66",

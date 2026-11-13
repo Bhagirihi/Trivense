@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Platform,
   Animated,
   Easing,
+  Alert,
+  Share,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { useSubscription } from "../context/SubscriptionContext";
@@ -15,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { getUserProfile } from "../config/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { expenseService } from "../services/expenseService";
+import { expenseBoardService } from "../services/expenseBoardService";
 import ThemeToggle from "../components/ThemeToggle";
 import { ScreenLayout } from "../components/ScreenLayout";
 import ExpenseList from "../components/ExpenseList";
@@ -51,11 +54,23 @@ import { isTourCompleted } from "../utils/appCueStorage";
 import { useAppCue } from "../context/AppCueContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { devLog } from "../utils/logger";
-import { LinearGradient } from "expo-linear-gradient";
 import { QuickActionTile } from "../components/ui/UIKit";
 import { styles } from "./dashboard/dashboardStyles";
 import { useFooterScrollPadding } from "../hooks/useFooterScrollPadding";
+import { kinetic } from "../theme/tokens";
+import { HeroBalanceCard } from "../components/kinetic/HeroBalanceCard";
+import { BoardCard } from "../components/kinetic/BoardCard";
+import { SettlementActionModule } from "../components/kinetic/SettlementActionModule";
+import { SponsoredAdSlot } from "../components/kinetic/SponsoredAdSlot";
+import { computeExpenseStreak } from "../utils/streak";
+import {
+  buildWhoOwesMessage,
+  isValidUpiId,
+  openUpiPayment,
+} from "../utils/upiSettle";
+import { buildBoardJoinUrl } from "../config/appLinks";
 
+const K = kinetic.colors;
 
 export const DashboardScreen = ({ navigation }) => {
   const { startTour, activeHighlight, isActive: cueActive } = useAppCue();
@@ -70,6 +85,8 @@ export const DashboardScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [expenses, setExpenses] = useState([]);
   const [hasBoards, setHasBoards] = useState(false);
+  const [boards, setBoards] = useState([]);
+  const [boardDetails, setBoardDetails] = useState({});
   const [stats, setStats] = useState({
     totalBudget: 0,
     totalExpenses: 0,
@@ -78,11 +95,10 @@ export const DashboardScreen = ({ navigation }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { greeting, subtitle: dashboardSubtitle } = getLocalizedGreeting(t);
   const firstName = getFirstName(userProfile?.full_name, t("guest"));
-  // Keep the time-of-day greeting as the hero title (always visible).
-  const headerTitle = greeting;
-  const headerSubtitle = userProfile?.full_name
-    ? `${firstName} · ${dashboardSubtitle}`
-    : dashboardSubtitle;
+  // Header keeps the Trivense wordmark (AppTabHeader) + "Dashboard" label;
+  // the greeting lives in the content greeting row below.
+  const headerTitle = "Dashboard";
+  const headerSubtitle = dashboardSubtitle;
   const moreExpenseCount = Math.max(expenses.length - recentLimit, 0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -111,6 +127,33 @@ export const DashboardScreen = ({ navigation }) => {
     }
   }, []);
 
+  // Real per-board settlements (participants + greedy settlements) so the
+  // hero, settlement module and board cards all show live balances.
+  const fetchBoardData = useCallback(async () => {
+    if (!authUser?.id) return;
+    try {
+      const list = await expenseBoardService.getExpenseBoards();
+      setBoards(list || []);
+      const entries = await Promise.allSettled(
+        (list || []).map(async (board) => {
+          const details = await expenseBoardService.getExpenseBoardsByID(
+            board.id
+          );
+          return [board.id, details];
+        })
+      );
+      const detailsById = {};
+      entries.forEach((entry) => {
+        if (entry.status !== "fulfilled") return;
+        const [boardId, details] = entry.value;
+        if (details && !Array.isArray(details)) detailsById[boardId] = details;
+      });
+      setBoardDetails(detailsById);
+    } catch (error) {
+      console.error("Error fetching board settlements:", error);
+    }
+  }, [authUser?.id]);
+
   const fetchUnreadCount = useCallback(async () => {
     try {
       const count = await notificationService.getUnreadCount();
@@ -119,6 +162,38 @@ export const DashboardScreen = ({ navigation }) => {
       console.error("Error fetching unread count:", error);
     }
   }, []);
+
+  // Live net position for the signed-in user across all boards.
+  const { owedToYou, youOwe, userSettlements } = useMemo(() => {
+    const userId = authUser?.id;
+    if (!userId) return { owedToYou: 0, youOwe: 0, userSettlements: [] };
+    let owed = 0;
+    let owe = 0;
+    const mine = [];
+    Object.values(boardDetails).forEach((details) => {
+      (details.settlements || []).forEach((settlement) => {
+        if (settlement.toId === userId) {
+          owed += Number(settlement.amount) || 0;
+          mine.push(settlement);
+        } else if (settlement.fromId === userId) {
+          owe += Number(settlement.amount) || 0;
+          mine.push(settlement);
+        }
+      });
+    });
+    return { owedToYou: owed, youOwe: owe, userSettlements: mine };
+  }, [boardDetails, authUser?.id]);
+
+  const netPosition = owedToYou - youOwe;
+
+  // Real expense streak from the expenses already loaded on this screen.
+  const streak = useMemo(
+    () =>
+      computeExpenseStreak(
+        expenses.map((expense) => expense.date || expense.created_at)
+      ),
+    [expenses]
+  );
 
   const memoizedCalculateMonthlyStats = useCallback(
     (expensesData) => {
@@ -175,10 +250,11 @@ export const DashboardScreen = ({ navigation }) => {
   useEffect(() => {
     const stop = realTimeSync(async () => {
       await fetchDashboardDataState();
+      await fetchBoardData();
       await fetchUnreadCount();
     });
     return stop;
-  }, [fetchDashboardDataState, fetchUnreadCount]);
+  }, [fetchDashboardDataState, fetchBoardData, fetchUnreadCount]);
 
   useFocusEffect(
     useCallback(() => {
@@ -203,8 +279,9 @@ export const DashboardScreen = ({ navigation }) => {
     useCallback(() => {
       loadProfile();
       fetchDashboardDataState();
+      fetchBoardData();
       fetchUnreadCount();
-    }, [loadProfile, fetchDashboardDataState, fetchUnreadCount])
+    }, [loadProfile, fetchDashboardDataState, fetchBoardData, fetchUnreadCount])
   );
 
   useFocusEffect(
@@ -226,16 +303,6 @@ export const DashboardScreen = ({ navigation }) => {
       };
     }, [hasBoards, startTour, cueActive])
   );
-
-  // useEffect(() => {
-  //   const subscription = realTimeSync.subscribeToNotifications(() => {
-  //     fetchUnreadCount();
-  //   });
-
-  //   return () => {
-  //     subscription.unsubscribe();
-  //   };
-  // }, []);
 
   useEffect(() => {
     if (loading) {
@@ -289,10 +356,11 @@ export const DashboardScreen = ({ navigation }) => {
     await Promise.all([
       loadProfile(),
       fetchDashboardDataState(),
+      fetchBoardData(),
       fetchUnreadCount(),
     ]);
     setRefreshing(false);
-  }, [loadProfile, fetchDashboardDataState, fetchUnreadCount]);
+  }, [loadProfile, fetchDashboardDataState, fetchBoardData, fetchUnreadCount]);
 
   const handleDeletePress = async (expenseId) => {
     try {
@@ -311,104 +379,168 @@ export const DashboardScreen = ({ navigation }) => {
       showToast.error(t("failedToDeleteExpense"), t("tryAgainLater"));
     }
   };
-  // const fetchDashboardData = async () => {
-  //   try {
-  //     //setLoading(true);
 
-  //     // Fetch expense boards
-  //     const expenseBoards = await expenseBoardService.getExpenseBoards();
-  //     setHasBoards(expenseBoards.length > 0);
+  // --- Real settlement flows (UPI / share) ---------------------------------
+  const shareSettlements = useCallback(
+    async (settlements, boardName, boardId) => {
+      try {
+        let joinUrl;
+        if (boardId) {
+          try {
+            const code = await expenseBoardService.getBoardShareCode(boardId);
+            if (code) joinUrl = buildBoardJoinUrl(code);
+          } catch {
+            // Join link is a nice-to-have; the balances still share.
+          }
+        }
+        const message = buildWhoOwesMessage({
+          boardName: boardName || "Trivense",
+          settlements,
+          joinUrl,
+        });
+        await Share.share({ message });
+      } catch (error) {
+        if (error?.message !== "User did not share") {
+          Alert.alert(t("error"), t("failedToShareSettlements"));
+        }
+      }
+    },
+    [t]
+  );
 
-  //     // Calculate total budget and expenses from boards
-  //     const totalBudget = expenseBoards.reduce(
-  //       (sum, board) => sum + (board.total_budget || 0),
-  //       0
-  //     );
-  //     const totalExpenses = expenseBoards.reduce(
-  //       (sum, board) => sum + (board.totalExpenses || 0),
-  //       0
-  //     );
-  //     remainingBudget = totalBudget - totalExpenses;
+  const paySettlement = useCallback(
+    async (settlement, boardName) => {
+      if (!settlement) return;
+      const note = `Trivense ${boardName || "settle"}`;
+      if (isValidUpiId(settlement.toUpi)) {
+        try {
+          await openUpiPayment({
+            pa: settlement.toUpi,
+            pn: settlement.to,
+            amount: settlement.amount,
+            note,
+          });
+        } catch {
+          Alert.alert(t("error"), t("couldNotOpenUpi"));
+        }
+        return;
+      }
+      Alert.alert(
+        t("upiIdMissingTitle"),
+        t("upiIdMissingBody").replace("{{name}}", settlement.to),
+        [
+          { text: t("cancel"), style: "cancel" },
+          {
+            text: t("shareWhoOwes"),
+            onPress: () =>
+              shareSettlements([settlement], boardName, settlement.boardId),
+          },
+        ]
+      );
+    },
+    [shareSettlements, t]
+  );
 
-  //     // Update stats
-  //     setStats({
-  //       totalBudget,
-  //       totalExpenses,
-  //       remainingBudget,
-  //     });
+  // First settlement where the user is the debtor (the one they can pay).
+  const payableSettlement = useMemo(
+    () =>
+      userSettlements.find(
+        (settlement) => settlement.fromId === authUser?.id
+      ) || null,
+    [userSettlements, authUser?.id]
+  );
 
-  //     // Fetch recent transactions
-  //     const { data: transactionsData, error: transactionsError } =
-  //       await dashboardService.getRecentTransactions();
+  const handleSmartSettle = useCallback(() => {
+    if (payableSettlement) {
+      const board = boards.find(
+        (item) =>
+          (boardDetails[item.id]?.settlements || []).includes(
+            payableSettlement
+          )
+      );
+      paySettlement(payableSettlement, board?.name);
+    }
+  }, [payableSettlement, boards, boardDetails, paySettlement]);
 
-  //     console.log("transactionsData", transactionsData);
-
-  //     if (transactionsError) {
-  //       console.log("Error fetching transactions:", transactionsError);
-  //     }
-
-  //     setExpenses(transactionsData);
-  //   } catch (error) {
-  //     console.error("Error fetching dashboard data:", error.message);
-  //     showToast.error("Failed to load dashboard data");
-  //     setExpenses([]);
-  //   } finally {
-  //     // setLoading(false);
-  //   }
-  // };
+  const handleNudge = useCallback(() => {
+    if (!userSettlements.length) {
+      showToast.success("All settled", "Nobody owes anything right now.");
+      return;
+    }
+    const board = boards.find((item) =>
+      (boardDetails[item.id]?.settlements || []).some((settlement) =>
+        userSettlements.includes(settlement)
+      )
+    );
+    shareSettlements(userSettlements, board?.name, board?.id);
+  }, [userSettlements, boards, boardDetails, shareSettlements]);
 
   const budgetPercent = Math.min(
     100,
     Math.round((stats.totalExpenses / (stats.totalBudget || 1)) * 100)
   );
 
-  const renderBalanceCard = () => (
-    <LinearGradient
-      colors={theme.gradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.balanceCard}
-    >
-      <View style={styles.balanceTopRow}>
-        <View>
-          <Text style={styles.balanceEyebrow}>{t("totalBudget")}</Text>
-          <Text style={styles.balanceHero}>{formatCurrency(stats.totalBudget)}</Text>
+  const renderGreeting = () => (
+    <View style={styles.greetingRow}>
+      <Text style={styles.greetingText} numberOfLines={2}>
+        {`${greeting}, ${firstName}`}
+      </Text>
+      {streak >= 1 ? (
+        <View style={styles.streakPill}>
+          <MaterialCommunityIcons name="fire" size={16} color={K.warning} />
+          <Text style={styles.streakText}>
+            {streak}d Streak
+          </Text>
         </View>
-        <View style={styles.balanceStatPill}>
-          <Text style={styles.balancePillLabel}>{t("remaining")}</Text>
-          <Text style={styles.balancePillValue}>
-            {formatCurrency(stats.remainingBudget)}
+      ) : null}
+    </View>
+  );
+
+  const renderMonthlyBudgetGauge = () => {
+    if (!hasBoards || Number(stats.totalBudget) <= 0) return null;
+    const remaining = stats.totalBudget - stats.totalExpenses;
+    const isOver = remaining < 0;
+    return (
+      <View style={styles.gaugeCard}>
+        <View style={styles.gaugeTitleRow}>
+          <Text style={styles.gaugeTitle}>
+            Monthly Target
+          </Text>
+          <Text style={isOver ? styles.gaugeOverText : styles.gaugeSafeText}>
+            {isOver
+              ? `Over by ${formatCurrency(Math.abs(remaining))}`
+              : `Safe by ${formatCurrency(remaining)}`}
+          </Text>
+        </View>
+        <View style={styles.gaugeTrack}>
+          <View
+            style={[
+              styles.gaugeFill,
+              {
+                width: `${budgetPercent}%`,
+                backgroundColor: kinetic.gaugeColor(budgetPercent),
+              },
+            ]}
+          />
+        </View>
+        <View style={styles.gaugeMeta}>
+          <Text style={styles.gaugeMetaText}>
+            {t("spent")}:{" "}
+            <Text style={styles.gaugeMetaValue}>
+              {formatCurrency(stats.totalExpenses)}
+            </Text>
+          </Text>
+          <Text style={styles.gaugeMetaText}>
+            Limit:{" "}
+            <Text style={styles.gaugeMetaValue}>
+              {formatCurrency(stats.totalBudget)}
+            </Text>{" "}
+            ({budgetPercent}%)
           </Text>
         </View>
       </View>
-
-      <View style={styles.balanceStatsRow}>
-        <View style={styles.balanceMiniStat}>
-          <MaterialCommunityIcons name="cash-minus" size={16} color="rgba(255,255,255,0.9)" />
-          <Text style={styles.balanceMiniLabel}>{t("spent")}</Text>
-          <Text style={styles.balanceMiniValue}>{formatCurrency(stats.totalExpenses)}</Text>
-        </View>
-        <View style={styles.balanceMiniStat}>
-          <MaterialCommunityIcons name="chart-donut" size={16} color="rgba(255,255,255,0.9)" />
-          <Text style={styles.balanceMiniLabel}>{t("budgetUsage")}</Text>
-          <Text style={styles.balanceMiniValue}>{budgetPercent}%</Text>
-        </View>
-      </View>
-
-      <View style={styles.progressTrack}>
-        <View
-          style={[
-            styles.progressFill,
-            {
-              width: `${budgetPercent}%`,
-              backgroundColor:
-                budgetPercent >= 90 ? theme.coral || "#FB923C" : theme.white,
-            },
-          ]}
-        />
-      </View>
-    </LinearGradient>
-  );
+    );
+  };
 
   const renderMonthlyBudgetPrompt = () => {
     const budgetSet =
@@ -514,6 +646,136 @@ export const DashboardScreen = ({ navigation }) => {
       />
     </View>
   );
+
+  // Design quick actions: New Board / Scan Bill (AI badge) / Nudge.
+  // Add Bill lives in the row above (Add Expense tile, tour index 1).
+  const renderDesignActions = () => (
+    <View style={styles.designActions}>
+      <TouchableOpacity
+        style={styles.designAction}
+        onPress={() => navigation.navigate("CreateExpenseBoard")}
+        accessibilityRole="button"
+        accessibilityLabel="New Board"
+        testID="quick-action-new-board"
+        activeOpacity={0.85}
+      >
+        <View style={[styles.designActionIcon, { backgroundColor: "#E8EEF3" }]}>
+          <MaterialCommunityIcons name="folder-plus-outline" size={24} color={K.navy} />
+        </View>
+        <Text style={styles.designActionLabel}>New Board</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.designAction}
+        onPress={() => navigation.navigate("AddExpense", { fromScan: true })}
+        accessibilityRole="button"
+        accessibilityLabel="Scan Bill"
+        testID="quick-action-scan-bill"
+        activeOpacity={0.85}
+      >
+        <View style={styles.aiBadge}>
+          <Text style={styles.aiBadgeText}>AI</Text>
+        </View>
+        <View style={[styles.designActionIcon, { backgroundColor: "#FFF1E6" }]}>
+          <MaterialCommunityIcons name="line-scan" size={24} color={K.coral} />
+        </View>
+        <Text style={styles.designActionLabel}>Scan Bill</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.designAction}
+        onPress={handleNudge}
+        accessibilityRole="button"
+        accessibilityLabel="Nudge"
+        testID="quick-action-nudge"
+        activeOpacity={0.85}
+      >
+        <View style={[styles.designActionIcon, { backgroundColor: "#E7F8EE" }]}>
+          <MaterialCommunityIcons name="bell-ring-outline" size={24} color={K.success} />
+        </View>
+        <Text style={styles.designActionLabel}>Nudge</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderBoardsSection = () => {
+    if (!hasBoards || boards.length === 0) return null;
+    return (
+      <View>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            Active Shared Boards
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ExpenseBoard")}
+            style={styles.seeAllButton}
+            accessibilityRole="button"
+            accessibilityLabel="View all"
+          >
+            <Text style={styles.seeAllText}>View all</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.boardsList}>
+          {boards.slice(0, 3).map((board) => {
+            const details = boardDetails[board.id];
+            const participants = details?.participants || [];
+            const myParticipant = participants.find(
+              (participant) => participant.id === authUser?.id
+            );
+            const myShare = myParticipant
+              ? (Number(myParticipant.balancePaise) || 0) / 100
+              : 0;
+            const boardTotal = Number(details?.totalExpenses ?? board.totalExpenses) || 0;
+            const boardBudget = Number(details?.totalBudget ?? board.total_budget) || 0;
+            const usage =
+              boardBudget > 0 ? Math.round((boardTotal / boardBudget) * 100) : null;
+            const boardSettlements = details?.settlements || [];
+            const myDebt = boardSettlements.find(
+              (settlement) => settlement.fromId === authUser?.id
+            );
+            const memberCount = Math.max(participants.length, 1);
+            return (
+              <BoardCard
+                key={board.id}
+                title={board.name}
+                subtitle={
+                  memberCount > 1
+                    ? `${memberCount} ${t("members") || "members"}`
+                     : "Personal board"
+                }
+                icon={board.board_icon || "💰"}
+                yourShare={myShare}
+                members={participants.map((participant) => ({
+                  id: participant.id,
+                  name: participant.name,
+                }))}
+                totalMembers={participants.length}
+                budgetUsagePercent={usage}
+                unsettledCount={
+                  myDebt ? undefined : boardSettlements.length
+                }
+                settleLabel={
+                  myDebt
+                    ? `You pay ${myDebt.to} ${formatCurrency(myDebt.amount)}`
+                    : null
+                }
+                onPress={() =>
+                  navigation.navigate("ExpenseBoardDetails", {
+                    boardId: board.id,
+                    boardName: board.name,
+                    totalExpenses: boardTotal,
+                    totalBudget: boardBudget,
+                    totalTransactions: board.totalTransactions,
+                  })
+                }
+                onSettlePress={
+                  myDebt ? () => paySettlement(myDebt, board.name) : undefined
+                }
+              />
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
 
   const renderNotificationTestButtons = () => (
     <View style={styles.notificationTestContainer}>
@@ -772,9 +1034,22 @@ export const DashboardScreen = ({ navigation }) => {
     </View>
   );
 
+  const renderAvatar = () => (
+    <TouchableOpacity
+      onPress={() => navigation.navigate("Profile", { tabRoot: false })}
+      accessibilityRole="button"
+      accessibilityLabel="Profile"
+      style={styles.avatarCircle}
+    >
+      <Text style={styles.avatarText}>
+        {(firstName || "?").trim().charAt(0).toUpperCase()}
+      </Text>
+    </TouchableOpacity>
+  );
+
   if (loading) {
     return (
-      <ScreenLayout navigation={navigation} footerRoute="Home" showAdBanner={false}>
+      <ScreenLayout navigation={navigation} footerRoute={null} showAdBanner={false}>
         <AnimatedLoader context="dashboard" />
       </ScreenLayout>
     );
@@ -783,13 +1058,14 @@ export const DashboardScreen = ({ navigation }) => {
   return (
     <ScreenLayout
       navigation={navigation}
-      footerRoute="Home"
+      footerRoute={null}
       showAdBanner={false}
       header={
         <AppTabHeader
           compact
           title={headerTitle}
           subtitle={headerSubtitle}
+          leading={renderAvatar()}
           onTitlePress={() => navigation.navigate("Profile", { tabRoot: false })}
           trailing={renderHeaderTrailing()}
         />
@@ -810,11 +1086,37 @@ export const DashboardScreen = ({ navigation }) => {
         <AdSupportedAccessBanner />
 
         <View style={styles.sections}>
+          {renderGreeting()}
           {renderFirstBoardPrompt()}
           {renderMonthlyBudgetPrompt()}
-          {hasBoards ? renderBalanceCard() : null}
-          <HomeInlineAd />
+          {hasBoards ? (
+            <HeroBalanceCard
+              netPosition={netPosition}
+              owedToYou={owedToYou}
+              youOwe={youOwe}
+              formatAmount={formatCurrency}
+              onSmartSettle={payableSettlement ? handleSmartSettle : undefined}
+            />
+          ) : null}
+          {userSettlements.length > 0 ? (
+            <SettlementActionModule
+              greedySummary={
+                userSettlements.length > 1
+                  ? `Greedy AI collapses ${userSettlements.length} dues into direct UPI transfers`
+                  : null
+              }
+              greedyCount={userSettlements.length}
+              onRequestUpi={payableSettlement ? handleSmartSettle : undefined}
+              onWhatsappNudge={handleNudge}
+            />
+          ) : null}
           {renderQuickActions()}
+          {renderDesignActions()}
+          {renderMonthlyBudgetGauge()}
+          {renderBoardsSection()}
+          <SponsoredAdSlot>
+            <HomeInlineAd />
+          </SponsoredAdSlot>
           {__DEV__ ? renderNotificationTestButtons() : null}
           {renderTransactionsSection()}
           <HomeBrowseLink
@@ -826,4 +1128,3 @@ export const DashboardScreen = ({ navigation }) => {
     </ScreenLayout>
   );
 };
-
