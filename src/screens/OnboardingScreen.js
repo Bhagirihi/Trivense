@@ -6,53 +6,76 @@ import {
   Dimensions,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BrandLogo } from "../components/BrandLogo";
-import { useTheme } from "../context/ThemeContext";
+import { AiSparkleIcon, UpiLightningIcon } from "../components/kinetic/SettlementIcons";
 import { useTranslation } from "../hooks/useTranslation";
 import { setOnboardingComplete } from "../utils/onboardingStorage";
-import { layout, radii, spacing, typography } from "../theme/tokens";
+import { kinetic, layout, spacing } from "../theme/tokens";
 
 const { width } = Dimensions.get("window");
+const K = kinetic.colors;
 
+/**
+ * Kinetic onboarding — 3 slides (copy per redesign brief; literal English,
+ * no i18n keys exist for this copy yet). Flow unchanged: Skip / Get Started
+ * mark onboarding complete and route to Login (or Dashboard as before).
+ */
 const SLIDES = [
   {
-    key: "track",
-    icon: "airplane",
-    titleKey: "trackTravelExpenses",
-    subtitleKey: "keepCostsInOnePlace",
-  },
-  {
     key: "split",
-    icon: "account-group",
-    titleKey: "splitBillsEasily",
-    subtitleKey: "shareWithCompanions",
+    title: "Split expenses, not friendships",
+    subtitle:
+      "Track shared expenses with friends, family and flatmates in one place.",
+    chips: ["Friends", "Family", "Flatmates"],
   },
   {
-    key: "budget",
-    icon: "chart-line",
-    titleKey: "planYourBudget",
-    subtitleKey: "setBudgetsAndTrack",
+    key: "settle",
+    title: "Settle in one tap",
+    subtitle: "Pay via UPI and mark settlements as done instantly.",
+    chips: ["GPay", "PhonePe", "BHIM", "Paytm"],
+  },
+  {
+    key: "insights",
+    title: "Smart insights",
+    subtitle: "See where your money goes with beautiful analytics.",
+    chips: ["Budgets", "Analytics", "Trends"],
   },
 ];
 
+function SlideIcon({ slideKey }) {
+  if (slideKey === "settle") return <UpiLightningIcon size={56} />;
+  if (slideKey === "insights") return <AiSparkleIcon size={56} />;
+  return (
+    <MaterialCommunityIcons name="account-group" size={56} color={K.textInverse} />
+  );
+}
+
 export const OnboardingScreen = ({ navigation }) => {
-  const { theme } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const listRef = useRef(null);
   const [index, setIndex] = useState(0);
+  const [finishing, setFinishing] = useState(false);
 
   const finish = async () => {
-    await setOnboardingComplete();
-    const routeNames = navigation.getState()?.routeNames || [];
-    if (routeNames.includes("Login")) {
-      navigation.replace("Login");
-      return;
+    if (finishing) return;
+    setFinishing(true);
+    try {
+      await setOnboardingComplete();
+      const routeNames = navigation.getState()?.routeNames || [];
+      if (routeNames.includes("Login")) {
+        navigation.replace("Login");
+        return;
+      }
+      navigation.replace("Dashboard");
+    } finally {
+      setFinishing(false);
     }
-    navigation.replace("Dashboard");
   };
 
   const onNext = () => {
@@ -66,21 +89,45 @@ export const OnboardingScreen = ({ navigation }) => {
 
   const renderSlide = ({ item }) => (
     <View style={[styles.slide, { width }]}>
-      <View style={[styles.iconCircle, { backgroundColor: theme.primaryMuted }]}>
-        <MaterialCommunityIcons name={item.icon} size={48} color={theme.primary} />
+      <LinearGradient
+        colors={K.heroGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
+      >
+        <View style={styles.iconCircle}>
+          <SlideIcon slideKey={item.key} />
+        </View>
+        <Text style={styles.heroTitle}>{item.title}</Text>
+        <Text style={styles.heroSubtitle}>{item.subtitle}</Text>
+      </LinearGradient>
+      <View style={styles.chipsRow}>
+        {item.chips.map((chip) => (
+          <View key={chip} style={styles.chip}>
+            <Text style={styles.chipText}>{chip}</Text>
+          </View>
+        ))}
       </View>
-      <Text style={[styles.title, { color: theme.text }]}>{t(item.titleKey)}</Text>
-      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-        {t(item.subtitleKey)}
-      </Text>
     </View>
   );
 
+  const last = index === SLIDES.length - 1;
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.logoRow}>
-        <BrandLogo size={44} />
-        <Text style={[styles.brand, { color: theme.text }]}>Trivense</Text>
+    <View style={[styles.container, { paddingTop: insets.top + spacing.md }]}>
+      <View style={styles.header}>
+        <View style={styles.logoRow}>
+          <BrandLogo size={40} />
+          <Text style={styles.brand}>Trivense</Text>
+        </View>
+        <TouchableOpacity
+          onPress={finish}
+          style={styles.skipBtn}
+          accessibilityRole="button"
+          accessibilityLabel={t("skip")}
+        >
+          <Text style={styles.skipText}>{t("skip")}</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -110,8 +157,8 @@ export const OnboardingScreen = ({ navigation }) => {
               style={[
                 styles.dot,
                 {
-                  backgroundColor: i === index ? theme.primary : theme.border,
-                  width: i === index ? 20 : 8,
+                  backgroundColor: i === index ? K.coral : K.border,
+                  width: i === index ? 24 : 8,
                 },
               ]}
             />
@@ -119,31 +166,46 @@ export const OnboardingScreen = ({ navigation }) => {
         </View>
 
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: theme.primary }]}
           onPress={onNext}
-          activeOpacity={0.85}
+          disabled={finishing}
+          activeOpacity={0.88}
           accessibilityRole="button"
-          accessibilityLabel={
-            index === SLIDES.length - 1 ? t("getStarted") : t("next")
-          }
+          accessibilityLabel={last ? t("getStarted") : t("next")}
+          style={[styles.ctaWrap, finishing && styles.disabled]}
         >
-          <Text style={[styles.buttonText, { color: theme.white }]}>
-            {index === SLIDES.length - 1 ? t("getStarted") : t("next")}
-          </Text>
+          <LinearGradient
+            colors={K.coralGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.ctaGradient}
+          >
+            {finishing ? (
+              <ActivityIndicator color={K.textInverse} />
+            ) : (
+              <>
+                <Text style={styles.ctaText}>
+                  {last ? t("getStarted") : t("next")}
+                </Text>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={20}
+                  color={K.textInverse}
+                />
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
 
-        {index < SLIDES.length - 1 ? (
+        <View style={styles.loginRow}>
+          <Text style={styles.loginText}>Already have an account? </Text>
           <TouchableOpacity
             onPress={finish}
-            style={styles.skipBtn}
-            accessibilityRole="button"
-            accessibilityLabel={t("skip")}
+            accessibilityRole="link"
+            accessibilityLabel="Log In"
           >
-            <Text style={[styles.skipText, { color: theme.textSecondary }]}>
-              {t("skip")}
-            </Text>
+            <Text style={styles.loginLink}>Log In</Text>
           </TouchableOpacity>
-        ) : null}
+        </View>
       </View>
     </View>
   );
@@ -152,44 +214,90 @@ export const OnboardingScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: spacing.xxl,
+    backgroundColor: K.canvas,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: layout.screenPadding,
+    marginBottom: spacing.lg,
   },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: spacing.sm,
-    marginBottom: spacing.lg,
   },
   brand: {
-    ...typography.h3,
-    fontWeight: "700",
+    fontFamily: kinetic.fonts.jakartaExtraBold,
+    fontSize: 22,
+    color: K.navy,
+  },
+  skipBtn: {
+    minHeight: 44,
+    minWidth: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+  },
+  skipText: {
+    ...kinetic.typography.bodyMedium,
+    color: K.textSecondary,
   },
   slide: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: layout.screenPadding + spacing.md,
+    paddingHorizontal: layout.screenPadding,
+  },
+  heroCard: {
+    borderRadius: kinetic.radii.xl,
+    paddingHorizontal: spacing["2xl"],
+    paddingVertical: spacing["3xl"],
+    alignItems: "center",
+    ...kinetic.shadows.elevated,
   },
   iconCircle: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.xl,
   },
-  title: {
-    ...typography.h1,
-    fontSize: 28,
+  heroTitle: {
+    ...kinetic.typography.displayMedium,
+    color: K.textInverse,
     textAlign: "center",
     marginBottom: spacing.md,
   },
-  subtitle: {
-    ...typography.body,
+  heroSubtitle: {
+    ...kinetic.typography.body,
+    fontSize: 15,
+    lineHeight: 22,
+    color: "rgba(255, 255, 255, 0.85)",
     textAlign: "center",
-    lineHeight: 24,
-    maxWidth: 320,
+  },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+  },
+  chip: {
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  chipText: {
+    ...kinetic.typography.caption,
+    color: K.navy,
   },
   footer: {
     paddingHorizontal: layout.screenPadding,
@@ -205,22 +313,40 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  button: {
+  ctaWrap: {
     width: "100%",
-    paddingVertical: spacing.md,
-    borderRadius: radii.lg,
+    borderRadius: kinetic.radii.md,
+    ...kinetic.shadows.ctaCoral,
+  },
+  ctaGradient: {
+    minHeight: 56,
+    borderRadius: kinetic.radii.md,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
-  buttonText: {
-    ...typography.bodyMedium,
-    fontWeight: "700",
+  ctaText: {
+    fontFamily: kinetic.fonts.jakartaBold,
+    fontSize: 16,
+    color: K.textInverse,
   },
-  skipBtn: {
-    marginTop: spacing.md,
-    padding: spacing.sm,
+  disabled: {
+    opacity: 0.6,
   },
-  skipText: {
-    ...typography.caption,
+  loginRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: spacing.lg,
+  },
+  loginText: {
+    ...kinetic.typography.body,
+    color: K.textSecondary,
+  },
+  loginLink: {
+    ...kinetic.typography.bodyMedium,
+    color: K.coralDark,
   },
 });
 

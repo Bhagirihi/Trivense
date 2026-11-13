@@ -8,6 +8,7 @@ import {
   Alert,
   TextInput,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
 import { ScreenLayout } from "../components/ScreenLayout";
@@ -28,17 +29,35 @@ import { FEATURES } from "../config/subscriptionPlans";
 import { subscriptionService } from "../services/subscriptionService";
 import { supabase } from "../config/supabase";
 import { formatCurrency } from "../utils/formatters";
-import { QuickActionTile } from "../components/ui/UIKit";
-import Card from "../components/common/Card";
-import { layout, radii, spacing, typography } from "../theme/tokens";
+import { kinetic, layout, spacing } from "../theme/tokens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import InlineListAd from "../components/InlineListAd";
+import { BoardCard } from "../components/kinetic/BoardCard";
+import { SponsoredAdSlot } from "../components/kinetic/SponsoredAdSlot";
 import {
   interleaveListWithAds,
   isAdListItem,
 } from "../utils/listWithAds";
 import { LIST_AD_INTERVAL_BOARDS } from "../config/admob";
 import { useFocusEffect } from "@react-navigation/native";
+import { fromPaise } from "../utils/settlements";
+
+const K = kinetic.colors;
+
+/** Board icon names (MaterialCommunityIcons) render as emoji in BoardCard. */
+const BOARD_ICON_EMOJI = {
+  home: "🏠",
+  briefcase: "💼",
+  car: "🚗",
+  food: "🍕",
+  shopping: "🛍️",
+  movie: "🎬",
+  music: "🎵",
+  book: "📚",
+  "gamepad-variant": "🎮",
+  airplane: "✈️",
+  "view-grid": "💰",
+};
 
 export const ExpenseBoardScreen = ({ navigation }) => {
   const { theme } = useTheme();
@@ -60,6 +79,10 @@ export const ExpenseBoardScreen = ({ navigation }) => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  // boardId -> { members, yourShare, unsettledCount, isDebtor } from
+  // getExpenseBoardsByID (real settlements; loaded alongside the list).
+  const [boardSummaries, setBoardSummaries] = useState({});
 
   useEffect(() => {
     fetchExpenseBoards();
@@ -97,18 +120,54 @@ export const ExpenseBoardScreen = ({ navigation }) => {
     }, [refreshSharingLimits])
   );
 
-  const boardListData = useMemo(() => {
+  const filteredBoards = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    const filtered = q
+    let list = q
       ? expenseBoards.filter((b) =>
           String(b.name || "").toLowerCase().includes(q)
         )
       : expenseBoards;
-    if (!showBannerAds || isAdFree || filtered.length === 0) return filtered;
-    return interleaveListWithAds(filtered, {
+    if (filter === "active") {
+      list = list.filter(
+        (b) => (boardSummaries[b.id]?.unsettledCount || 0) > 0
+      );
+    } else if (filter === "settled") {
+      list = list.filter(
+        (b) => (boardSummaries[b.id]?.unsettledCount || 0) === 0
+      );
+    }
+    return list;
+  }, [expenseBoards, searchQuery, filter, boardSummaries]);
+
+  const boardListData = useMemo(() => {
+    if (!showBannerAds || isAdFree || filteredBoards.length === 0) {
+      return filteredBoards;
+    }
+    return interleaveListWithAds(filteredBoards, {
       interval: LIST_AD_INTERVAL_BOARDS,
     });
-  }, [expenseBoards, isAdFree, showBannerAds, searchQuery]);
+  }, [filteredBoards, isAdFree, showBannerAds]);
+
+  const netPosition = useMemo(
+    () =>
+      expenseBoards.reduce(
+        (sum, b) => sum + (boardSummaries[b.id]?.yourShare || 0),
+        0
+      ),
+    [expenseBoards, boardSummaries]
+  );
+  const activePoolsTotal = useMemo(
+    () => expenseBoards.reduce((sum, b) => sum + (b?.totalExpenses || 0), 0),
+    [expenseBoards]
+  );
+  const activeCount = useMemo(
+    () =>
+      expenseBoards.filter(
+        (b) => (boardSummaries[b.id]?.unsettledCount || 0) > 0
+      ).length,
+    [expenseBoards, boardSummaries]
+  );
+  const settledCount = expenseBoards.length - activeCount;
 
   const fetchExpenseBoards = async () => {
     try {
@@ -119,6 +178,37 @@ export const ExpenseBoardScreen = ({ navigation }) => {
         return;
       }
       setExpenseBoards(data);
+      // Enrich each board with real members / your-share / unsettled
+      // counts so BoardCard shows true balances, never placeholders.
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const results = await Promise.allSettled(
+          data.map((board) =>
+            expenseBoardService.getExpenseBoardsByID(board.id)
+          )
+        );
+        const summaries = {};
+        results.forEach((result, index) => {
+          if (result.status !== "fulfilled" || !result.value) return;
+          const detail = result.value;
+          const participants = detail.participants || [];
+          const me = participants.find((p) => p.id === user?.id);
+          summaries[data[index].id] = {
+            members: participants.map((p) => ({ id: p.id, name: p.name })),
+            yourShare: me ? fromPaise(me.balancePaise || 0) : 0,
+            unsettledCount: (detail.settlements || []).length,
+            isDebtor: (detail.settlements || []).some(
+              (s) => s.fromId === user?.id
+            ),
+          };
+        });
+        setBoardSummaries(summaries);
+      } catch {
+        // List still renders; cards fall back to the neutral BoardCard state.
+        setBoardSummaries({});
+      }
     } catch (error) {
       showToast.error("Failed to fetch boards", error.message);
     } finally {
@@ -246,29 +336,6 @@ export const ExpenseBoardScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const renderQuickActions = () => (
-    <View style={styles.quickRow}>
-      <QuickActionTile
-        icon="plus-circle-outline"
-        label={t("createBoard") || "Create"}
-        color={theme.primary}
-        onPress={() => navigation.navigate("CreateExpenseBoard")}
-      />
-      <QuickActionTile
-        icon="account-multiple-plus-outline"
-        label={t("joinBoard") || "Join"}
-        color={theme.accent}
-        onPress={() => {
-          if (!paymentsEnabled || hasFeature(FEATURES.BOARD_SHARING) || canJoinMore) {
-            setShowJoinModal(true);
-            return;
-          }
-          requireFeature(FEATURES.BOARD_SHARING, navigation);
-        }}
-      />
-    </View>
-  );
-
   const openBoardDetails = (board) => {
     navigation.navigate("ExpenseBoardDetails", {
       boardId: board.id,
@@ -280,168 +347,123 @@ export const ExpenseBoardScreen = ({ navigation }) => {
   };
 
   const renderBoardCard = (board) => {
-    const color = board.color || theme.primary;
-    const pct = getBudgetPct(board);
-    const overBudget = (board?.totalExpenses || 0) > (board?.total_budget || 0);
-
+    const summary = boardSummaries[board.id] || {};
+    const members = summary.members || [];
     return (
-      <Card key={board.id} style={styles.boardCard} padding="medium">
-        <View style={styles.boardHeader}>
-          <TouchableOpacity
-            style={styles.boardHeaderMain}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={`${board.name}, ${t("totalExpenses")} ${formatCurrency(board?.totalExpenses || 0)}`}
-            onPress={() => openBoardDetails(board)}
-          >
-            <View style={[styles.boardIcon, { backgroundColor: `${color}18` }]}>
-              <MaterialCommunityIcons
-                name={board.icon || "view-grid"}
-                size={22}
-                color={color}
-              />
-            </View>
-            <View style={styles.boardTitleCol}>
-              <Text style={[styles.boardName, { color: theme.text }]} numberOfLines={1}>
-                {board.name}
-              </Text>
-              <Text style={[styles.boardMeta, { color: theme.textSecondary }]} numberOfLines={1}>
-                {t("byCreator")} {board.created_by}
-                {board.is_default ? ` · ${t("default")}` : ""}
-              </Text>
-            </View>
-          </TouchableOpacity>
+      <View key={board.id} style={styles.boardWrap}>
+        <BoardCard
+          title={board.name}
+          subtitle={`By ${board.created_by} · ${board.totalTransactions || 0} expenses`}
+          icon={BOARD_ICON_EMOJI[board.icon] || "💰"}
+          yourShare={summary.yourShare || 0}
+          members={members}
+          totalMembers={members.length}
+          budgetUsagePercent={getBudgetPct(board)}
+          unsettledCount={summary.unsettledCount ?? null}
+          settleLabel={summary.isDebtor ? "Settle Up" : null}
+          onPress={() => openBoardDetails(board)}
+          onSettlePress={
+            summary.isDebtor
+              ? () => navigation.navigate("Analysis", { boardId: board.id })
+              : null
+          }
+        />
+        {!board.isShared ? (
           <View style={styles.boardActions}>
-            {!board.isShared ? (
-              <TouchableOpacity
-                style={styles.actionBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel={t("shareBoard") || "Share board"}
-                onPress={() => handleShareBoard(board)}
-              >
-                <MaterialCommunityIcons
-                  name="share-variant"
-                  size={18}
-                  color={theme.primary}
-                />
-              </TouchableOpacity>
-            ) : null}
-            {!board.isShared ? (
-              <TouchableOpacity
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel={t("deleteBoard")}
-                onPress={() => handleDeleteBoard(board)}
-                style={styles.actionBtn}
-              >
-                <MaterialCommunityIcons name="delete-outline" size={18} color={theme.error} />
-              </TouchableOpacity>
-            ) : null}
             <TouchableOpacity
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.boardActionBtn}
+              onPress={() => handleShareBoard(board)}
               accessibilityRole="button"
-              accessibilityLabel={t("open") || "Open"}
-              onPress={() => openBoardDetails(board)}
+              accessibilityLabel={t("shareBoard") || "Share board"}
             >
-              <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textMuted} />
+              <MaterialCommunityIcons
+                name="share-variant"
+                size={18}
+                color={K.navy}
+              />
+              <Text style={styles.boardActionText}>
+                {t("shareBoard") || "Share"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.boardActionBtn}
+              onPress={() => handleDeleteBoard(board)}
+              accessibilityRole="button"
+              accessibilityLabel={t("deleteBoard")}
+            >
+              <MaterialCommunityIcons
+                name="delete-outline"
+                size={18}
+                color={K.danger}
+              />
+              <Text style={[styles.boardActionText, { color: K.danger }]}>
+                {t("delete")}
+              </Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        <TouchableOpacity activeOpacity={0.9} onPress={() => openBoardDetails(board)}>
-          <View style={styles.statsRow}>
-            <View style={styles.statBlock}>
-              <Text style={[styles.statLabel, { color: theme.textMuted }]}>
-                {t("totalExpenses")}
-              </Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>
-                {formatCurrency(board?.totalExpenses || 0)}
-              </Text>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
-            <View style={styles.statBlock}>
-              <Text style={[styles.statLabel, { color: theme.textMuted }]}>
-                {t("budget")}
-              </Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>
-                {formatCurrency(board?.total_budget || 0)}
-              </Text>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
-            <View style={styles.statBlock}>
-              <Text style={[styles.statLabel, { color: theme.textMuted }]}>
-                {t("transactions")}
-              </Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>
-                {board?.totalTransactions || 0}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.progressSection}>
-            <View style={styles.progressLabels}>
-              <Text style={[styles.progressLabel, { color: theme.textSecondary }]}>
-                Budget used
-              </Text>
-              <Text
-                style={[
-                  styles.progressPct,
-                  { color: overBudget ? theme.error : theme.success },
-                ]}
-              >
-                {pct.toFixed(0)}%
-              </Text>
-            </View>
-            <View style={[styles.progressTrack, { backgroundColor: theme.borderLight }]}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    backgroundColor: overBudget ? theme.error : color,
-                    width: `${pct}%`,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Card>
+        ) : null}
+      </View>
     );
   };
 
   const renderEmpty = () => (
     <View style={styles.emptyWrap}>
-      <View style={[styles.emptyIcon, { backgroundColor: theme.primaryMuted }]}>
+      <View style={styles.emptyIcon}>
         <MaterialCommunityIcons
           name="view-grid-plus-outline"
           size={40}
-          color={theme.primary}
+          color={K.navy}
         />
       </View>
-      <Text style={[styles.emptyTitle, { color: theme.text }]}>
-        {t("noExpenseBoardsFound")}
-      </Text>
-      <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
+      <Text style={styles.emptyTitle}>{t("noExpenseBoardsFound")}</Text>
+      <Text style={styles.emptySub}>
         Create a board to organize trip or group expenses
       </Text>
       <TouchableOpacity
-        style={[styles.emptyCta, { backgroundColor: theme.primary }]}
+        style={styles.emptyCta}
         onPress={() => navigation.navigate("CreateExpenseBoard")}
+        accessibilityRole="button"
+        accessibilityLabel={t("createBoard")}
       >
-        <MaterialCommunityIcons name="plus" size={20} color={theme.white} />
-        <Text style={styles.emptyCtaText}>{t("createBoard")}</Text>
+        <LinearGradient
+          colors={K.coralGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.emptyCtaGradient}
+        >
+          <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+          <Text style={styles.emptyCtaText}>{t("createBoard")}</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
 
+  const renderFilterChip = (key, label, count) => {
+    const selected = filter === key;
+    return (
+      <TouchableOpacity
+        key={key}
+        onPress={() => setFilter(key)}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ selected }}
+        style={[styles.chip, selected && styles.chipSelected]}
+      >
+        <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+          {label} ({count})
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   if (loading) {
     return (
       <ScreenLayout
+        footerRoute={null}
         header={
           <Header
             title={t("expenseBoard")}
-            onBack={() => navigation.goBack()}
+            showBack={false}
             rightComponent={headerRight}
           />
         }
@@ -453,10 +475,11 @@ export const ExpenseBoardScreen = ({ navigation }) => {
 
   return (
     <ScreenLayout
+      footerRoute={null}
       header={
         <Header
           title={t("expenseBoard")}
-          onBack={() => navigation.goBack()}
+          showBack={false}
           rightComponent={headerRight}
         />
       }
@@ -468,38 +491,115 @@ export const ExpenseBoardScreen = ({ navigation }) => {
           { paddingBottom: spacing.xxl + insets.bottom },
         ]}
       >
-        {renderQuickActions()}
         {expenseBoards.length > 0 ? (
-          <View
-            style={{
-              marginHorizontal: layout.screenPadding,
-              marginBottom: spacing.sm,
-              flexDirection: "row",
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: theme.border,
-              borderRadius: 12,
-              paddingHorizontal: 12,
-              backgroundColor: theme.card || theme.surface,
-            }}
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryBlock}>
+              <Text style={styles.summaryLabel}>NET POSITION</Text>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  {
+                    color:
+                      netPosition > 0
+                        ? K.textPositive
+                        : netPosition < 0
+                          ? K.textNegative
+                          : K.textPrimary,
+                  },
+                ]}
+              >
+                {netPosition > 0
+                  ? `+${formatCurrency(netPosition)}`
+                  : netPosition < 0
+                    ? `-${formatCurrency(Math.abs(netPosition))}`
+                    : formatCurrency(0)}
+              </Text>
+              <Text style={styles.summarySub}>
+                {netPosition > 0
+                  ? "in your favour"
+                  : netPosition < 0
+                    ? "you owe"
+                    : "all settled"}
+              </Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryBlock}>
+              <Text style={styles.summaryLabel}>ACTIVE POOLS</Text>
+              <Text style={styles.summaryValue}>
+                {formatCurrency(activePoolsTotal)}
+              </Text>
+              <Text style={styles.summarySub}>
+                {expenseBoards.length}{" "}
+                {expenseBoards.length === 1 ? "board" : "boards"}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={styles.quickRow}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("CreateExpenseBoard")}
+            accessibilityRole="button"
+            accessibilityLabel={t("createBoard") || "Create board"}
+            activeOpacity={0.9}
+            style={styles.quickFlex}
           >
+            <LinearGradient
+              colors={K.coralGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.quickCta, kinetic.shadows.ctaCoral]}
+            >
+              <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+              <Text style={styles.quickCtaText}>
+                {t("createBoard") || "Create Board"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              if (
+                !paymentsEnabled ||
+                hasFeature(FEATURES.BOARD_SHARING) ||
+                canJoinMore
+              ) {
+                setShowJoinModal(true);
+                return;
+              }
+              requireFeature(FEATURES.BOARD_SHARING, navigation);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("joinBoard") || "Join board"}
+            activeOpacity={0.9}
+            style={styles.quickFlex}
+          >
+            <View style={[styles.quickCta, styles.quickJoin]}>
+              <MaterialCommunityIcons
+                name="account-multiple-plus-outline"
+                size={20}
+                color={K.navy}
+              />
+              <Text style={[styles.quickCtaText, { color: K.navy }]}>
+                {t("joinBoard") || "Join Board"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {expenseBoards.length > 0 ? (
+          <View style={styles.searchBox}>
             <MaterialCommunityIcons
               name="magnify"
               size={20}
-              color={theme.textSecondary}
+              color={K.textSecondary}
             />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder={t("searchBoardsPlaceholder")}
-              placeholderTextColor={theme.textSecondary}
+              placeholder="Search boards…"
+              placeholderTextColor={K.textSecondary}
               accessibilityLabel={t("searchBoards")}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                paddingHorizontal: 8,
-                color: theme.text,
-              }}
+              style={styles.searchInput}
             />
             {searchQuery ? (
               <TouchableOpacity
@@ -510,16 +610,29 @@ export const ExpenseBoardScreen = ({ navigation }) => {
                 <MaterialCommunityIcons
                   name="close-circle"
                   size={18}
-                  color={theme.textSecondary}
+                  color={K.textSecondary}
                 />
               </TouchableOpacity>
             ) : null}
           </View>
         ) : null}
+
+        {expenseBoards.length > 0 ? (
+          <View style={styles.chipRow}>
+            {renderFilterChip("all", "All Boards", expenseBoards.length)}
+            {renderFilterChip("active", "Active", activeCount)}
+            {renderFilterChip("settled", "Settled", settledCount)}
+          </View>
+        ) : null}
+
         {expenseBoards.length > 0 ? (
           boardListData.map((item) =>
             isAdListItem(item) ? (
-              <InlineListAd key={item.id} />
+              <View key={item.id} style={styles.adWrap}>
+                <SponsoredAdSlot>
+                  <InlineListAd />
+                </SponsoredAdSlot>
+              </View>
             ) : (
               renderBoardCard(item)
             )
@@ -568,102 +681,155 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: layout.screenPadding,
     paddingTop: spacing.md,
+    backgroundColor: K.canvas,
   },
   headerBtn: {
     width: 36,
     height: 36,
-    borderRadius: radii.md,
+    borderRadius: kinetic.radii.md,
     alignItems: "center",
     justifyContent: "center",
   },
+  summaryCard: {
+    flexDirection: "row",
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.lg,
+    padding: kinetic.spacing.lg,
+    marginBottom: spacing.lg,
+    ...kinetic.shadows.card,
+  },
+  summaryBlock: { flex: 1 },
+  summaryLabel: {
+    ...kinetic.typography.captionBold,
+    color: K.textTertiary,
+    letterSpacing: 0.5,
+  },
+  summaryValue: {
+    ...kinetic.typography.displayMedium,
+    color: K.textPrimary,
+    marginTop: spacing.xs,
+  },
+  summarySub: {
+    ...kinetic.typography.caption,
+    color: K.textSecondary,
+    marginTop: 2,
+  },
+  summaryDivider: { width: 1, backgroundColor: K.border, marginHorizontal: spacing.md },
   quickRow: {
     flexDirection: "row",
     gap: spacing.md,
     marginBottom: spacing.lg,
   },
-  boardCard: {
-    marginBottom: spacing.md,
-  },
-  boardHeader: {
+  quickFlex: { flex: 1 },
+  quickCta: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.md,
+    justifyContent: "center",
+    height: 48,
+    borderRadius: kinetic.radii.full,
     gap: spacing.sm,
   },
-  boardHeaderMain: {
-    flex: 1,
+  quickJoin: {
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.borderStrong,
+  },
+  quickCtaText: {
+    ...kinetic.typography.headingSmall,
+    color: K.textInverse,
+  },
+  searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
-    minWidth: 0,
-  },
-  boardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  boardTitleCol: { flex: 1 },
-  boardName: { ...typography.bodyMedium, fontSize: 17 },
-  boardMeta: { ...typography.caption, marginTop: 2, fontWeight: "400" },
-  boardActions: { flexDirection: "row", alignItems: "center", gap: 2 },
-  actionBtn: { padding: spacing.xs },
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.md,
+    paddingHorizontal: spacing.md,
+    backgroundColor: K.card,
     marginBottom: spacing.md,
   },
-  statBlock: { flex: 1, alignItems: "center" },
-  statDivider: { width: 1, height: 32 },
-  statLabel: { ...typography.micro, marginBottom: 4 },
-  statValue: { ...typography.label, fontWeight: "700" },
-  progressSection: { gap: spacing.xs },
-  progressLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  progressLabel: { ...typography.caption, fontWeight: "500" },
-  progressPct: { ...typography.caption, fontWeight: "700" },
-  progressTrack: {
-    height: 6,
-    borderRadius: radii.pill,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: radii.pill,
-  },
-  loadingContainer: {
+  searchInput: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: spacing.sm,
+    color: K.textPrimary,
+    ...kinetic.typography.body,
   },
+  chipRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: kinetic.radii.full,
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    minHeight: 36,
+    justifyContent: "center",
+  },
+  chipSelected: {
+    backgroundColor: K.navy,
+    borderColor: K.navy,
+  },
+  chipText: {
+    ...kinetic.typography.caption,
+    fontWeight: "600",
+    color: K.textSecondary,
+  },
+  chipTextSelected: { color: K.textInverse },
+  boardWrap: { marginBottom: spacing.md },
+  boardActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  boardActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    gap: 6,
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.md,
+  },
+  boardActionText: {
+    ...kinetic.typography.bodyMedium,
+    color: K.navy,
+  },
+  adWrap: { marginBottom: spacing.md },
   emptyWrap: {
     alignItems: "center",
-    paddingVertical: spacing.xxxl,
+    paddingVertical: kinetic.spacing["3xl"],
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
   },
   emptyIcon: {
     width: 80,
     height: 80,
-    borderRadius: radii.xl,
+    borderRadius: kinetic.radii.xl,
+    backgroundColor: K.tintBlue,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.sm,
   },
-  emptyTitle: { ...typography.h3, textAlign: "center" },
-  emptySub: { ...typography.body, textAlign: "center", fontWeight: "400" },
-  emptyCta: {
+  emptyTitle: { ...kinetic.typography.headingLarge, textAlign: "center", color: K.textPrimary },
+  emptySub: { ...kinetic.typography.body, textAlign: "center", color: K.textSecondary },
+  emptyCta: { marginTop: spacing.sm },
+  emptyCtaGradient: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: radii.md,
-    marginTop: spacing.sm,
+    height: 48,
+    borderRadius: kinetic.radii.full,
   },
-  emptyCtaText: { color: "#FFFFFF", ...typography.label },
+  emptyCtaText: { color: "#FFFFFF", ...kinetic.typography.headingSmall },
 });

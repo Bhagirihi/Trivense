@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
 import { ScreenLayout } from "../components/ScreenLayout";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -17,8 +16,6 @@ import FormInput from "../components/common/FormInput";
 import FormButton from "../components/common/FormButton";
 import { ScreenActionBar } from "../components/ui/ScreenActionBar";
 import ShareModal from "../components/ShareModal";
-import Card from "../components/common/Card";
-import { SectionLabel } from "../components/ui/UIKit";
 import { showToast } from "../utils/toast";
 import { formatNumber, getCurrencySymbol } from "../utils/formatters";
 import { useAppSettings } from "../context/AppSettingsContext";
@@ -32,8 +29,10 @@ import {
   getSessionInterstitialCount,
 } from "../services/adService";
 import { subscriptionService } from "../services/subscriptionService";
-import { layout, radii, spacing, typography } from "../theme/tokens";
+import { kinetic, layout, spacing } from "../theme/tokens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const K = kinetic.colors;
 
 const BOARD_COLORS = [
   { id: "red", value: "#FF6B6B" },
@@ -61,70 +60,7 @@ const BOARD_ICONS = [
   { id: "travel", name: "airplane", label: "Travel" },
 ];
 
-const styles = StyleSheet.create({
-  keyboardAvoid: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.md,
-  },
-  previewCard: {
-    marginBottom: spacing.lg,
-    alignItems: "center",
-    paddingVertical: spacing.xl,
-  },
-  previewIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: radii.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.md,
-  },
-  previewName: { ...typography.h3, textAlign: "center" },
-  previewBudget: { ...typography.caption, marginTop: spacing.xs, fontWeight: "500" },
-  section: { marginBottom: spacing.lg },
-  colorGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  colorItem: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  iconItem: {
-    width: "30%",
-    minWidth: 96,
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    gap: spacing.xs,
-  },
-  iconLabel: { ...typography.micro, textAlign: "center", fontWeight: "500" },
-  shareRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    borderWidth: 1,
-  },
-  shareRowText: { ...typography.bodyMedium, flex: 1 },
-  createButton: { marginTop: 0 },
-});
-
 export const CreateExpenseBoardScreen = ({ navigation, route }) => {
-  const { theme } = useTheme();
   const { t } = useTranslation();
   const { currency } = useAppSettings();
   const insets = useSafeAreaInsets();
@@ -259,7 +195,7 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
   };
 
   const renderPreview = () => (
-    <Card style={styles.previewCard} variant="elevated">
+    <View style={styles.previewCard}>
       <View
         style={[
           styles.previewIcon,
@@ -272,20 +208,20 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
           color={selectedColor.value}
         />
       </View>
-      <Text style={[styles.previewName, { color: theme.text }]}>
+      <Text style={styles.previewName}>
         {boardName.trim() || "Your board name"}
       </Text>
-      <Text style={[styles.previewBudget, { color: theme.textSecondary }]}>
+      <Text style={styles.previewBudget}>
         {perPersonBudget
           ? `${getCurrencySymbol(currency)}${formatNumber(parseFloat(perPersonBudget))} per person`
           : "Set a per-person budget"}
       </Text>
-    </Card>
+    </View>
   );
 
   const renderColorPicker = () => (
     <View style={styles.section}>
-      <SectionLabel title="Color" style={{ marginTop: 0 }} />
+      <Text style={styles.sectionLabel}>Color</Text>
       <View style={styles.colorGrid}>
         {BOARD_COLORS.map((color) => {
           const selected = selectedColor.id === color.id;
@@ -297,10 +233,13 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
                 {
                   backgroundColor: color.value,
                   borderWidth: selected ? 3 : 0,
-                  borderColor: theme.text,
+                  borderColor: selected ? K.coral : "transparent",
                 },
               ]}
               onPress={() => setSelectedColor(color)}
+              accessibilityRole="button"
+              accessibilityLabel={`${color.id} color`}
+              accessibilityState={{ selected }}
             >
               {selected ? (
                 <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
@@ -314,7 +253,7 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
 
   const renderIconPicker = () => (
     <View style={styles.section}>
-      <SectionLabel title="Icon" />
+      <Text style={styles.sectionLabel}>Icon</Text>
       <View style={styles.iconGrid}>
         {BOARD_ICONS.map((icon) => {
           const selected = selectedIcon.id === icon.id;
@@ -324,21 +263,24 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
               style={[
                 styles.iconItem,
                 {
-                  backgroundColor: selected ? theme.primaryMuted : theme.surface,
-                  borderColor: selected ? theme.primary : theme.border,
+                  backgroundColor: selected ? "#FFF1E6" : K.card,
+                  borderColor: selected ? K.coral : K.border,
                 },
               ]}
               onPress={() => setSelectedIcon(icon)}
+              accessibilityRole="button"
+              accessibilityLabel={`${icon.label} icon`}
+              accessibilityState={{ selected }}
             >
               <MaterialCommunityIcons
                 name={icon.name}
                 size={24}
-                color={selected ? theme.primary : theme.textSecondary}
+                color={selected ? K.coral : K.textSecondary}
               />
               <Text
                 style={[
                   styles.iconLabel,
-                  { color: selected ? theme.primary : theme.textSecondary },
+                  { color: selected ? K.coral : K.textSecondary },
                 ]}
               >
                 {icon.label}
@@ -352,27 +294,18 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
 
   const renderShareRow = () => (
     <View style={styles.section}>
-      <SectionLabel title="Sharing" />
+      <Text style={styles.sectionLabel}>Sharing</Text>
       <TouchableOpacity
-        style={[styles.shareRow, { borderColor: theme.border, backgroundColor: theme.surface }]}
+        style={styles.shareRow}
         onPress={handleShareBoard}
+        accessibilityRole="button"
+        accessibilityLabel="Share after creating"
       >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: radii.md,
-            backgroundColor: theme.primaryMuted,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <MaterialCommunityIcons name="share-variant" size={20} color={theme.primary} />
+        <View style={styles.shareIcon}>
+          <MaterialCommunityIcons name="share-variant" size={20} color={K.navy} />
         </View>
-        <Text style={[styles.shareRowText, { color: theme.text }]}>
-          Share after creating
-        </Text>
-        <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textMuted} />
+        <Text style={styles.shareRowText}>Share after creating</Text>
+        <MaterialCommunityIcons name="chevron-right" size={22} color={K.textTertiary} />
       </TouchableOpacity>
     </View>
   );
@@ -401,7 +334,7 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
           {renderPreview()}
 
           <View style={styles.section}>
-            <SectionLabel title="Details" style={{ marginTop: 0 }} />
+            <Text style={styles.sectionLabel}>Details</Text>
             <FormInput
               label="Board Name"
               value={boardName}
@@ -461,6 +394,7 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
           loading={loading}
           size="large"
           style={styles.createButton}
+          testID="create-board-button"
         />
       </ScreenActionBar>
 
@@ -475,3 +409,103 @@ export const CreateExpenseBoardScreen = ({ navigation, route }) => {
     </ScreenLayout>
   );
 };
+
+const styles = StyleSheet.create({
+  keyboardAvoid: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: spacing.md,
+    backgroundColor: K.canvas,
+  },
+  previewCard: {
+    marginBottom: spacing.lg,
+    alignItems: "center",
+    paddingVertical: spacing.xl,
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.lg,
+    ...kinetic.shadows.card,
+  },
+  previewIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: kinetic.radii.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+  },
+  previewName: {
+    ...kinetic.typography.headingLarge,
+    color: K.textPrimary,
+    textAlign: "center",
+  },
+  previewBudget: {
+    ...kinetic.typography.caption,
+    color: K.textSecondary,
+    marginTop: spacing.xs,
+  },
+  section: { marginBottom: spacing.lg },
+  sectionLabel: {
+    ...kinetic.typography.captionBold,
+    color: K.textTertiary,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    marginBottom: spacing.sm,
+  },
+  colorGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  colorItem: {
+    width: 44,
+    height: 44,
+    borderRadius: kinetic.radii.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  iconItem: {
+    width: "30%",
+    minWidth: 96,
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: kinetic.radii.md,
+    borderWidth: 1,
+    gap: spacing.xs,
+  },
+  iconLabel: {
+    ...kinetic.typography.captionBold,
+    textAlign: "center",
+  },
+  shareRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: kinetic.radii.md,
+    borderWidth: 1,
+    borderColor: K.border,
+    backgroundColor: K.card,
+    minHeight: 56,
+  },
+  shareIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: kinetic.radii.md,
+    backgroundColor: K.tintBlue,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shareRowText: { ...kinetic.typography.bodyMedium, flex: 1, color: K.textPrimary },
+  createButton: {
+    backgroundColor: K.coral,
+    ...kinetic.shadows.ctaCoral,
+  },
+});

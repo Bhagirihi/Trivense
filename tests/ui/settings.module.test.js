@@ -43,7 +43,10 @@ describe("Settings module UI", () => {
     await waitFor(() => {
       expect(getAllByText("Settings").length).toBeGreaterThan(0);
     });
-    expect(getByText("Appearance")).toBeTruthy();
+    // Kinetic redesign (2026-11-13): the old "Appearance" section is now
+    // "Preferences" (Stitch Settings copy) with a "Theme" row.
+    expect(getByText("Preferences")).toBeTruthy();
+    expect(getByText("Theme")).toBeTruthy();
     expect(getByText("Expense Settings")).toBeTruthy();
     expect(getByText("Default Board")).toBeTruthy();
   });

@@ -55,7 +55,7 @@ try {
 } catch (err) {
   const out = String(err.stdout || err.stderr || "");
   if (out.includes("Check for app config fields that may not be synced")) {
-    warn("expo-doctor: prebuild/CNG sync note (expected with committed android/ folder)");
+    warn("expo-doctor: prebuild/CNG sync note (no committed android/ folder; EAS prebuild regenerates it)");
   } else {
     fail("expo-doctor reported issues — run: npx expo-doctor");
   }

@@ -2,11 +2,14 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,  TouchableOpacity,
+  StyleSheet,
+  TouchableOpacity,
   TextInput,
   ActivityIndicator,
   ScrollView,
+  Switch,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
 import { ScreenLayout } from "../components/ScreenLayout";
@@ -23,6 +26,9 @@ import { useSubscription } from "../context/SubscriptionContext";
 import { subscriptionService } from "../services/subscriptionService";
 import { supabase } from "../config/supabase";
 import { FEATURES } from "../config/subscriptionPlans";
+import { kinetic } from "../theme/tokens";
+
+const K = kinetic.colors;
 
 // Constants
 const CATEGORY_COLORS = [
@@ -66,6 +72,10 @@ export const AddCategoryScreen = ({ navigation, route }) => {
     icon: CATEGORY_ICONS[0],
   });
   const [errors, setErrors] = useState({});
+  // Monthly budget is display-only for now: the categories table has no
+  // budget column, so this value is not sent to categoryService (see report).
+  const [budgetEnabled, setBudgetEnabled] = useState(false);
+  const [monthlyBudget, setMonthlyBudget] = useState("");
 
   // Initialize form data if editing existing category
   useEffect(() => {
@@ -171,36 +181,34 @@ export const AddCategoryScreen = ({ navigation, route }) => {
     }
   };
 
-  const getIconStyle = (iconId) => ({
-    backgroundColor: formData.icon.id === iconId ? theme.primary : theme.card,
-    borderColor: theme.border,
-  });
-
-  const getIconColor = (iconId) =>
-    formData.icon.id === iconId ? theme.white : theme.text;
-
   const renderColorPicker = () => (
     <View style={styles.inputContainer}>
-      <Text style={[styles.label, { color: theme.text }]}>{t("chooseColor")}</Text>
+      <Text style={styles.label}>{t("chooseColor")}</Text>
       <View style={styles.colorList}>
-        {CATEGORY_COLORS.map((color) => (
-          <TouchableOpacity
-            key={color.id}
-            style={[
-              styles.colorItem,
-              { backgroundColor: color.value || theme.card },
-              formData.color.id === color.id && {
-                borderWidth: 2,
-                borderColor: theme.primary,
-              },
-            ]}
-            onPress={() => setFormData((prev) => ({ ...prev, color }))}
-          >
-            {formData.color.id === color.id && (
-              <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
-            )}
-          </TouchableOpacity>
-        ))}
+        {CATEGORY_COLORS.map((color) => {
+          const selected = formData.color.id === color.id;
+          return (
+            <TouchableOpacity
+              key={color.id}
+              style={[
+                styles.colorItem,
+                { backgroundColor: color.value || theme.card },
+                selected && {
+                  borderWidth: 3,
+                  borderColor: K.coral,
+                },
+              ]}
+              onPress={() => setFormData((prev) => ({ ...prev, color }))}
+              accessibilityRole="button"
+              accessibilityLabel={`${color.label} color`}
+              accessibilityState={{ selected }}
+            >
+              {selected && (
+                <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
@@ -212,24 +220,81 @@ export const AddCategoryScreen = ({ navigation, route }) => {
 
   const renderIconPicker = () => (
     <View style={styles.inputContainer}>
-      <Text style={[styles.label, { color: theme.text }]}>{t("chooseIcon")}</Text>
+      <Text style={styles.label}>{t("chooseIcon")}</Text>
       <View style={styles.iconList}>
-        {sortedIcons.map((icon) => (
-          <TouchableOpacity
-            key={icon.id}
-            style={[styles.iconItem, getIconStyle(icon.id)]}
-            onPress={() => setFormData((prev) => ({ ...prev, icon }))}
-          >
-            <MaterialCommunityIcons
-              name={icon.name}
-              size={24}
-              color={getIconColor(icon.id)}
-            />
-            <Text style={[styles.iconLabel, { color: getIconColor(icon.id) }]}>
-              {icon.label}
+        {sortedIcons.map((icon) => {
+          const selected = formData.icon.id === icon.id;
+          return (
+            <TouchableOpacity
+              key={icon.id}
+              style={[
+                styles.iconItem,
+                {
+                  backgroundColor: selected ? K.coral : K.card,
+                  borderColor: selected ? K.coral : K.border,
+                },
+              ]}
+              onPress={() => setFormData((prev) => ({ ...prev, icon }))}
+              accessibilityRole="button"
+              accessibilityLabel={`${icon.label} icon`}
+              accessibilityState={{ selected }}
+            >
+              <MaterialCommunityIcons
+                name={icon.name}
+                size={24}
+                color={selected ? "#FFFFFF" : K.textPrimary}
+              />
+              <Text
+                style={[
+                  styles.iconLabel,
+                  { color: selected ? "#FFFFFF" : K.textSecondary },
+                ]}
+              >
+                {icon.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderBudgetSection = () => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>Budget (optional)</Text>
+      <View style={styles.budgetCard}>
+        <View style={styles.budgetRow}>
+          <View style={styles.budgetTextCol}>
+            <Text style={styles.budgetTitle}>Set monthly budget</Text>
+            <Text style={styles.budgetSub}>
+              Get alerted when spending nears the limit
             </Text>
-          </TouchableOpacity>
-        ))}
+          </View>
+          <Switch
+            value={budgetEnabled}
+            onValueChange={setBudgetEnabled}
+            trackColor={{ false: K.borderStrong, true: K.coral }}
+            thumbColor="#FFFFFF"
+            accessibilityLabel="Set monthly budget"
+          />
+        </View>
+        {budgetEnabled ? (
+          <View style={styles.budgetInputRow}>
+            <Text style={styles.budgetCurrency}>₹</Text>
+            <TextInput
+              style={styles.budgetInput}
+              placeholder="5,000"
+              placeholderTextColor={K.textTertiary}
+              value={monthlyBudget}
+              onChangeText={(text) =>
+                setMonthlyBudget(text.replace(/[^0-9.]/g, ""))
+              }
+              keyboardType="numeric"
+              accessibilityLabel="Monthly budget amount"
+            />
+            <Text style={styles.budgetSuffix}>/ month</Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -239,22 +304,46 @@ export const AddCategoryScreen = ({ navigation, route }) => {
         title={route.params?.category ? t("editCategory") : t("addCategory")}
         onBack={() => navigation.goBack()}
       />}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.previewCard}>
+          <View
+            style={[
+              styles.previewIcon,
+              { backgroundColor: formData.color.value },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={formData.icon.name}
+              size={28}
+              color="#FFFFFF"
+            />
+          </View>
+          <View style={styles.previewTextCol}>
+            <Text style={styles.previewLabel}>Preview Badge</Text>
+            <Text style={styles.previewName} numberOfLines={1}>
+              {formData.name.trim() || "Your category name"}
+            </Text>
+            <Text style={styles.previewSub}>Active in Splits and Budgets</Text>
+          </View>
+        </View>
+
         <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: theme.text }]}>
+          <Text style={styles.label}>
             {t("name")}
           </Text>
           <TextInput
             style={[
               styles.input,
               {
-                backgroundColor: theme.card,
-                color: theme.text,
-                borderColor: errors.name ? theme.error : theme.border,
+                borderColor: errors.name ? K.danger : K.border,
               },
             ]}
             placeholder={t("enterCategoryName")}
-            placeholderTextColor={theme.textSecondary}
+            placeholderTextColor={K.textSecondary}
             value={formData.name}
             onChangeText={(text) => {
               setFormData((prev) => ({ ...prev, name: text }));
@@ -265,26 +354,24 @@ export const AddCategoryScreen = ({ navigation, route }) => {
             maxLength={MAX_NAME_LENGTH}
           />
           {errors.name && (
-            <Text style={[styles.errorText, { color: theme.error }]}>
+            <Text style={[styles.errorText, { color: K.danger }]}>
               {errors.name}
             </Text>
           )}
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: theme.text }]}>{t("description")}</Text>
+          <Text style={styles.label}>{t("description")}</Text>
           <TextInput
             style={[
               styles.input,
               {
-                backgroundColor: theme.card,
-                color: theme.text,
-                borderColor: errors.description ? theme.error : theme.border,
+                borderColor: errors.description ? K.danger : K.border,
                 height: 100,
               },
             ]}
             placeholder={t("boardDescription")}
-            placeholderTextColor={theme.textSecondary}
+            placeholderTextColor={K.textSecondary}
             value={formData.description}
             onChangeText={(text) => {
               setFormData((prev) => ({ ...prev, description: text }));
@@ -297,35 +384,44 @@ export const AddCategoryScreen = ({ navigation, route }) => {
             maxLength={MAX_DESCRIPTION_LENGTH}
           />
           {errors.description && (
-            <Text style={[styles.errorText, { color: theme.error }]}>
+            <Text style={[styles.errorText, { color: K.danger }]}>
               {errors.description}
             </Text>
           )}
         </View>
 
-        {renderColorPicker()}
         {renderIconPicker()}
+        {renderColorPicker()}
+        {renderBudgetSection()}
       </ScrollView>
 
       <ScreenActionBar>
         <TouchableOpacity
-          style={[
-            styles.saveButton,
-            {
-              backgroundColor: theme.primary,
-              opacity: loading ? 0.7 : 1,
-            },
-          ]}
           onPress={handleSave}
           disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel={t("save")}
+          activeOpacity={0.9}
         >
-          {loading ? (
-            <ActivityIndicator color={theme.white} />
-          ) : (
-            <Text style={[styles.saveButtonText, { color: theme.white }]}>
-              {t("save")}
-            </Text>
-          )}
+          <LinearGradient
+            colors={K.coralGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.saveButton, kinetic.shadows.ctaCoral]}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={20}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.saveButtonText}>Save Category</Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </ScreenActionBar>
     </ScreenLayout>
@@ -333,27 +429,66 @@ export const AddCategoryScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
     flex: 1,
+    backgroundColor: K.canvas,
+  },
+  scrollContent: {
     padding: 16,
+    paddingBottom: 24,
+  },
+  previewCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.lg,
+    padding: 16,
+    marginBottom: 20,
+    gap: 12,
+    ...kinetic.shadows.card,
+  },
+  previewIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: kinetic.radii.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewTextCol: { flex: 1, minWidth: 0 },
+  previewLabel: {
+    ...kinetic.typography.captionBold,
+    color: K.textTertiary,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  previewName: {
+    ...kinetic.typography.headingMedium,
+    color: K.textPrimary,
+    marginTop: 2,
+  },
+  previewSub: {
+    ...kinetic.typography.caption,
+    color: K.textSecondary,
+    marginTop: 2,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "500",
+    ...kinetic.typography.headingSmall,
+    color: K.textPrimary,
     marginBottom: 8,
-    opacity: 0.8,
   },
   input: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: kinetic.radii.md,
     fontSize: 16,
     borderWidth: 1,
+    backgroundColor: K.card,
+    color: K.textPrimary,
+    minHeight: 52,
   },
   colorList: {
     flexDirection: "row",
@@ -361,9 +496,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   colorItem: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     margin: 4,
     justifyContent: "center",
     alignItems: "center",
@@ -376,8 +511,8 @@ const styles = StyleSheet.create({
   iconItem: {
     width: "auto",
     minWidth: 80,
-    height: 60,
-    borderRadius: 8,
+    height: 64,
+    borderRadius: kinetic.radii.md,
     justifyContent: "center",
     alignItems: "center",
     margin: 4,
@@ -393,13 +528,66 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  saveButton: {
+  budgetCard: {
+    backgroundColor: K.card,
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.lg,
     padding: 16,
-    borderRadius: 8,
+    ...kinetic.shadows.card,
+  },
+  budgetRow: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  budgetTextCol: { flex: 1 },
+  budgetTitle: {
+    ...kinetic.typography.headingSmall,
+    color: K.textPrimary,
+  },
+  budgetSub: {
+    ...kinetic.typography.caption,
+    color: K.textSecondary,
+    marginTop: 2,
+  },
+  budgetInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: K.border,
+    borderRadius: kinetic.radii.md,
+    backgroundColor: K.subtle,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    minHeight: 52,
+  },
+  budgetCurrency: {
+    ...kinetic.typography.headingMedium,
+    color: K.textPrimary,
+    marginRight: 4,
+  },
+  budgetInput: {
+    flex: 1,
+    fontSize: 16,
+    color: K.textPrimary,
+    paddingVertical: 12,
+  },
+  budgetSuffix: {
+    ...kinetic.typography.body,
+    color: K.textSecondary,
+  },
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 52,
+    borderRadius: kinetic.radii.full,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...kinetic.typography.headingSmall,
+    color: "#FFFFFF",
   },
 });

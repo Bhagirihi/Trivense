@@ -11,10 +11,12 @@ import {
   Share,
   ActivityIndicator,
   Linking,
+  Image,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { Header } from "../components/Header";
 import { ScreenLayout } from "../components/ScreenLayout";
+import AdBanner from "../components/AdBanner";
 import { AnimatedLoader } from "../components/ui/AnimatedLoader";
 import RewardedAdOffer from "../components/RewardedAdOffer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -44,14 +46,21 @@ import { devLog } from "../utils/logger";
 import { copyToClipboard } from "../utils/clipboard";
 import { LEGAL_LINKS, buildReferralShareUrl } from "../config/appLinks";
 import { referralService } from "../services/referralService";
+import { useAppSettings } from "../context/AppSettingsContext";
+import { kinetic } from "../theme/tokens";
 import { BrandLogo } from "../components/BrandLogo";
 import { createSettingsStyles } from "./settings/settingsStyles";
 import { PasswordResetSection } from "./settings/PasswordResetSection";
 
 export const SettingsScreen = ({ navigation }) => {
-  const { theme } = useTheme();
-  const styles = useMemo(() => createSettingsStyles(theme), [theme]);
+  const { isDarkMode } = useTheme();
+  const styles = useMemo(() => createSettingsStyles(), []);
   const { t } = useTranslation();
+  const { currency, language } = useAppSettings();
+  const C = kinetic.colors;
+  const currencyLabel =
+    currency === "INR" ? "₹ INR" : currency === "USD" ? "$ USD" : currency;
+  const languageLabel = language === "hi" ? "Hindi" : "English";
   const { openFeatureLock, featureLockModal } = useFeatureLockModal(navigation);
   const scrollBottomPadding = useFooterScrollPadding();
   const { session } = useAuth();
@@ -312,6 +321,25 @@ export const SettingsScreen = ({ navigation }) => {
     }
   };
 
+  const handleDeleteAccount = () => {
+    // No in-app delete flow exists: per the privacy policy, account
+    // deletion is requested by emailing support.
+    Alert.alert(
+      "Delete Account",
+      "To delete your Trivense account and data, email support@trivense.app from your registered email address. You can export a copy of your data from Settings before requesting deletion.",
+      [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: "Email Support",
+          onPress: () =>
+            Linking.openURL(
+              "mailto:support@trivense.app?subject=Delete my Trivense account"
+            ),
+        },
+      ]
+    );
+  };
+
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -399,10 +427,10 @@ export const SettingsScreen = ({ navigation }) => {
     <View
       style={[
         styles.selectorContent,
-        { backgroundColor: theme.cardBackground },
+        { backgroundColor: C.card },
       ]}
     >
-      <Text style={[styles.modalTitle, { color: theme.text }]}>
+      <Text style={[styles.modalTitle, { color: C.textPrimary }]}>
         Default Board
       </Text>
       {expenseBoards.map((board) => (
@@ -410,20 +438,20 @@ export const SettingsScreen = ({ navigation }) => {
           key={board.id}
           style={[
             styles.selectorItem,
-            { borderBottomColor: theme.borderLight },
+            { borderBottomColor: C.border },
           ]}
           onPress={() => {
             updateDefaultBoard(board.id);
           }}
         >
-          <Text style={[styles.selectorItemText, { color: theme.text }]}>
+          <Text style={[styles.selectorItemText, { color: C.textPrimary }]}>
             {board.name}
           </Text>
           {board.id === boardID && (
             <MaterialCommunityIcons
               name="check"
               size={20}
-              color={theme.primary}
+              color={C.navy}
             />
           )}
         </TouchableOpacity>
@@ -432,7 +460,7 @@ export const SettingsScreen = ({ navigation }) => {
         style={[
           styles.modalButton,
           {
-            backgroundColor: theme.errorLight,
+            backgroundColor: "#FEE2E2",
             marginTop: 16,
             alignSelf: "flex-start",
           },
@@ -440,7 +468,7 @@ export const SettingsScreen = ({ navigation }) => {
         onPress={() => setEditModalVisible(false)}
         activeOpacity={0.8}
       >
-        <Text style={[styles.modalButtonText, { color: theme.error }]}>
+        <Text style={[styles.modalButtonText, { color: C.danger }]}>
           Cancel
         </Text>
       </TouchableOpacity>
@@ -449,33 +477,33 @@ export const SettingsScreen = ({ navigation }) => {
 
   const renderMonthlyBudgetEditor = () => (
     <View
-      style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}
+      style={[styles.modalContent, { backgroundColor: C.card }]}
     >
-      <Text style={[styles.modalTitle, { color: theme.text }]}>
+      <Text style={[styles.modalTitle, { color: C.textPrimary }]}>
         {t("monthlyBudget")}
       </Text>
-      <Text style={[styles.budgetLabel, { color: theme.textSecondary }]}>
+      <Text style={[styles.budgetLabel, { color: C.textSecondary }]}>
         {t("monthlyBudgetHint")}
       </Text>
       <TextInput
-        style={[styles.budgetInput, { color: theme.text, borderColor: theme.border }]}
+        style={[styles.budgetInput, { color: C.textPrimary, borderColor: C.border }]}
         value={editValue}
         onChangeText={setEditValue}
         keyboardType="numeric"
         placeholder={t("enterBudgetAmount")}
-        placeholderTextColor={theme.textSecondary}
+        placeholderTextColor={C.textSecondary}
       />
       <View style={styles.modalButtons}>
         <TouchableOpacity
-          style={[styles.modalButton, { backgroundColor: theme.errorLight }]}
+          style={[styles.modalButton, { backgroundColor: "#FEE2E2" }]}
           onPress={() => setEditModalVisible(false)}
         >
-          <Text style={[styles.modalButtonText, { color: theme.error }]}>
+          <Text style={[styles.modalButtonText, { color: C.danger }]}>
             {t("cancel")}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.modalButton, { backgroundColor: theme.primary }]}
+          style={[styles.modalButton, { backgroundColor: C.navy }]}
           onPress={handleUpdateBudget}
         >
           <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>
@@ -491,17 +519,17 @@ export const SettingsScreen = ({ navigation }) => {
 
   const renderBoardDetails = () => (
     <View
-      style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}
+      style={[styles.modalContent, { backgroundColor: C.card }]}
     >
       <View style={styles.modalHeader}>
-        <Text style={[styles.modalTitle, { color: theme.text }]}>
+        <Text style={[styles.modalTitle, { color: C.textPrimary }]}>
           Expense Boards
         </Text>
         <TouchableOpacity onPress={() => setEditModalVisible(false)}>
           <MaterialCommunityIcons
             name="close"
             size={24}
-            color={theme.textSecondary}
+            color={C.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -514,20 +542,20 @@ export const SettingsScreen = ({ navigation }) => {
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: theme.primaryLight },
+                  { backgroundColor: C.tintBlue },
                 ]}
               >
                 <MaterialCommunityIcons
                   name="view-dashboard-outline"
                   size={22}
-                  color={theme.primary}
+                  color={C.navy}
                 />
               </View>
-              <Text style={[styles.boardDetailName, { color: theme.text }]}>
+              <Text style={[styles.boardDetailName, { color: C.textPrimary }]}>
                 {board.name}
               </Text>
               <Text
-                style={[styles.memberCount, { color: theme.textSecondary }]}
+                style={[styles.memberCount, { color: C.textSecondary }]}
               >
                 {members.length} members
               </Text>
@@ -537,7 +565,7 @@ export const SettingsScreen = ({ navigation }) => {
               {members.map((member) => (
                 <Text
                   key={member.id}
-                  style={[styles.memberEmail, { color: theme.textSecondary }]}
+                  style={[styles.memberEmail, { color: C.textSecondary }]}
                 >
                   {member.shared_with || "Unknown"}
                 </Text>
@@ -551,17 +579,17 @@ export const SettingsScreen = ({ navigation }) => {
 
   const renderPremiumFeatures = () => (
     <View
-      style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}
+      style={[styles.modalContent, { backgroundColor: C.card }]}
     >
       <View style={styles.modalHeader}>
-        <Text style={[styles.modalTitle, { color: theme.text }]}>
+        <Text style={[styles.modalTitle, { color: C.textPrimary }]}>
           Premium Features
         </Text>
         <TouchableOpacity onPress={() => setEditModalVisible(false)}>
           <MaterialCommunityIcons
             name="close"
             size={24}
-            color={theme.textSecondary}
+            color={C.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -602,21 +630,21 @@ export const SettingsScreen = ({ navigation }) => {
             <View
               style={[
                 styles.featureIcon,
-                { backgroundColor: theme.primaryLight },
+                { backgroundColor: C.tintBlue },
               ]}
             >
               <MaterialCommunityIcons
                 name={feature.icon}
                 size={24}
-                color={theme.primary}
+                color={C.navy}
               />
             </View>
             <View style={styles.featureText}>
-              <Text style={[styles.featureTitle, { color: theme.text }]}>
+              <Text style={[styles.featureTitle, { color: C.textPrimary }]}>
                 {feature.title}
               </Text>
               <Text
-                style={[styles.featureDesc, { color: theme.textSecondary }]}
+                style={[styles.featureDesc, { color: C.textSecondary }]}
               >
                 {feature.desc}
               </Text>
@@ -625,10 +653,10 @@ export const SettingsScreen = ({ navigation }) => {
         ))}
       </View>
       <View style={styles.pricingSection}>
-        <Text style={[styles.priceAmount, { color: theme.text }]}>
+        <Text style={[styles.priceAmount, { color: C.textPrimary }]}>
           {formatCurrency(299)}
         </Text>
-        <Text style={[styles.pricePeriod, { color: theme.textSecondary }]}>
+        <Text style={[styles.pricePeriod, { color: C.textSecondary }]}>
           /month
         </Text>
       </View>
@@ -636,7 +664,7 @@ export const SettingsScreen = ({ navigation }) => {
         <TouchableOpacity
           style={[
             styles.upgradePremiumButton,
-            { backgroundColor: theme.primary },
+            { backgroundColor: C.navy },
           ]}
           onPress={() => {
             setEditModalVisible(false);
@@ -651,7 +679,6 @@ export const SettingsScreen = ({ navigation }) => {
 
   const renderPasswordReset = () => (
     <PasswordResetSection
-      theme={theme}
       error={error}
       success={success}
       currentPassword={currentPassword}
@@ -725,15 +752,15 @@ export const SettingsScreen = ({ navigation }) => {
 
   const renderInvitees = () => (
     <View
-      style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}
+      style={[styles.modalContent, { backgroundColor: C.card }]}
     >
       <View style={styles.modalHeader}>
-        <Text style={[styles.modalTitle, { color: theme.text }]}>Invitees</Text>
+        <Text style={[styles.modalTitle, { color: C.textPrimary }]}>Invitees</Text>
         <TouchableOpacity onPress={() => setEditModalVisible(false)}>
           <MaterialCommunityIcons
             name="close"
             size={24}
-            color={theme.textSecondary}
+            color={C.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -747,12 +774,12 @@ export const SettingsScreen = ({ navigation }) => {
           <MaterialCommunityIcons
             name="account-group-outline"
             size={48}
-            color={theme.textSecondary}
+            color={C.textSecondary}
           />
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+          <Text style={[styles.emptyText, { color: C.textSecondary }]}>
             No invitees found
           </Text>
-          <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
+          <Text style={[styles.emptySubtext, { color: C.textSecondary }]}>
             When you share boards, your invitees will appear here
           </Text>
         </View>
@@ -764,7 +791,7 @@ export const SettingsScreen = ({ navigation }) => {
               style={{
                 padding: 16,
                 borderBottomWidth: index !== inviteesList.length - 1 ? 1 : 0,
-                borderBottomColor: `${theme.text}10`,
+                borderBottomColor: `${C.textPrimary}10`,
               }}
             >
               <View
@@ -779,7 +806,7 @@ export const SettingsScreen = ({ navigation }) => {
                     width: 48,
                     height: 48,
                     borderRadius: 24,
-                    backgroundColor: `${theme.primary}15`,
+                    backgroundColor: `${C.navy}15`,
                     justifyContent: "center",
                     alignItems: "center",
                     marginRight: 16,
@@ -788,7 +815,7 @@ export const SettingsScreen = ({ navigation }) => {
                   <MaterialCommunityIcons
                     name="account"
                     size={28}
-                    color={theme.primary}
+                    color={C.navy}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -803,7 +830,7 @@ export const SettingsScreen = ({ navigation }) => {
                       style={{
                         fontSize: 18,
                         fontWeight: "600",
-                        color: theme.text,
+                        color: C.textPrimary,
                         marginRight: 8,
                       }}
                     >
@@ -816,8 +843,8 @@ export const SettingsScreen = ({ navigation }) => {
                         borderRadius: 12,
                         backgroundColor:
                           invitee.status === "accepted"
-                            ? `${theme.success}15`
-                            : `${theme.warning}15`,
+                            ? `${C.success}15`
+                            : `${C.warning}15`,
                       }}
                     >
                       <Text
@@ -826,8 +853,8 @@ export const SettingsScreen = ({ navigation }) => {
                           fontWeight: "600",
                           color:
                             invitee.status === "accepted"
-                              ? theme.success
-                              : theme.warning,
+                              ? C.success
+                              : C.warning,
                           textTransform: "capitalize",
                         }}
                       >
@@ -839,10 +866,10 @@ export const SettingsScreen = ({ navigation }) => {
                     <MaterialCommunityIcons
                       name="email-outline"
                       size={16}
-                      color={theme.textSecondary}
+                      color={C.textSecondary}
                       style={{ marginRight: 4 }}
                     />
-                    <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                    <Text style={{ fontSize: 14, color: C.textSecondary }}>
                       {invitee.userEmail}
                     </Text>
                   </View>
@@ -859,13 +886,13 @@ export const SettingsScreen = ({ navigation }) => {
                 <MaterialCommunityIcons
                   name="view-dashboard"
                   size={18}
-                  color={theme.textSecondary}
+                  color={C.textSecondary}
                   style={{ marginRight: 8 }}
                 />
                 <Text
                   style={{
                     fontSize: 14,
-                    color: theme.textSecondary,
+                    color: C.textSecondary,
                     fontWeight: "500",
                   }}
                 >
@@ -877,13 +904,13 @@ export const SettingsScreen = ({ navigation }) => {
                 <MaterialCommunityIcons
                   name="clock-outline"
                   size={16}
-                  color={theme.textSecondary}
+                  color={C.textSecondary}
                   style={{ marginRight: 8 }}
                 />
                 <Text
                   style={{
                     fontSize: 13,
-                    color: theme.textSecondary,
+                    color: C.textSecondary,
                   }}
                 >
                   Invited on {new Date(invitee.createdAt).toLocaleDateString()}
@@ -943,99 +970,99 @@ export const SettingsScreen = ({ navigation }) => {
       animationType="slide"
       onRequestClose={() => setShowShareAppModal(false)}
     >
-      <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+      <View style={[styles.modalOverlay, { backgroundColor: "rgba(15, 23, 42, 0.5)" }]}>
         <View
           style={[
             styles.modalContent,
-            { backgroundColor: theme.cardBackground },
+            { backgroundColor: C.card },
           ]}
         >
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
+            <Text style={[styles.modalTitle, { color: C.textPrimary }]}>
               {t("shareApp")}
             </Text>
             <TouchableOpacity onPress={() => setShowShareAppModal(false)}>
               <MaterialCommunityIcons
                 name="close"
                 size={24}
-                color={theme.textSecondary}
+                color={C.textSecondary}
               />
             </TouchableOpacity>
           </View>
 
           <View style={styles.shareContent}>
             <View style={styles.appInfo}>
-              <BrandLogo size={44} backgroundColor={theme.primary} style={styles.appIcon} />
+              <BrandLogo size={44} backgroundColor={C.navy} style={styles.appIcon} />
               <View style={styles.appText}>
-                <Text style={[styles.appName, { color: theme.text }]}>
+                <Text style={[styles.appName, { color: C.textPrimary }]}>
                   Trivense
                 </Text>
-                <Text style={[styles.appTagline, { color: theme.textSecondary }]}>
+                <Text style={[styles.appTagline, { color: C.textSecondary }]}>
                   {t("brandTagline")}
                 </Text>
               </View>
             </View>
 
             <View style={styles.codeContainer}>
-              <Text style={[styles.codeLabel, { color: theme.textSecondary }]}>
+              <Text style={[styles.codeLabel, { color: C.textSecondary }]}>
                 Your Referral Code
               </Text>
-              <View style={[styles.codeBox, { backgroundColor: theme.card }]}>
-                <Text style={[styles.codeText, { color: theme.text }]}>
+              <View style={[styles.codeBox, { backgroundColor: C.card }]}>
+                <Text style={[styles.codeText, { color: C.textPrimary }]}>
                   {referralCode}
                 </Text>
                 <TouchableOpacity onPress={() => handleShareApp("copy")}>
                   <MaterialCommunityIcons
                     name="content-copy"
                     size={20}
-                    color={theme.primary}
+                    color={C.navy}
                   />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <Text style={[styles.referralRewardBanner, { color: theme.primary }]}>
+            <Text style={[styles.referralRewardBanner, { color: C.navy }]}>
               {t("referralRewardHint")}
             </Text>
 
             <View style={styles.shareOptions}>
               <TouchableOpacity
-                style={[styles.shareOption, { backgroundColor: theme.card }]}
+                style={[styles.shareOption, { backgroundColor: C.card }]}
                 onPress={() => handleShareApp("email")}
               >
                 <MaterialCommunityIcons
                   name="email"
                   size={24}
-                  color={theme.primary}
+                  color={C.navy}
                 />
-                <Text style={[styles.shareOptionText, { color: theme.text }]}>
+                <Text style={[styles.shareOptionText, { color: C.textPrimary }]}>
                   Share via Email
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.shareOption, { backgroundColor: theme.card }]}
+                style={[styles.shareOption, { backgroundColor: C.card }]}
                 onPress={() => handleShareApp("social")}
               >
                 <MaterialCommunityIcons
                   name="share-variant"
                   size={24}
-                  color={theme.primary}
+                  color={C.navy}
                 />
-                <Text style={[styles.shareOptionText, { color: theme.text }]}>
+                <Text style={[styles.shareOptionText, { color: C.textPrimary }]}>
                   Share via Social Apps
                 </Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.referralInviteesSection}>
-              <Text style={[styles.codeLabel, { color: theme.textSecondary }]}>
+              <Text style={[styles.codeLabel, { color: C.textSecondary }]}>
                 {t("referralSignups")}
               </Text>
               {loadingReferrals ? (
-                <ActivityIndicator color={theme.primary} style={{ marginVertical: 12 }} />
+                <ActivityIndicator color={C.navy} style={{ marginVertical: 12 }} />
               ) : referralInvitees.length === 0 ? (
-                <Text style={[styles.referralEmptyText, { color: theme.textSecondary }]}>
+                <Text style={[styles.referralEmptyText, { color: C.textSecondary }]}>
                   {t("noReferralSignups")}
                 </Text>
               ) : (
@@ -1044,24 +1071,24 @@ export const SettingsScreen = ({ navigation }) => {
                     key={invitee.id}
                     style={[
                       styles.referralInviteeRow,
-                      { borderColor: theme.border, backgroundColor: theme.card },
+                      { borderColor: C.border, backgroundColor: C.card },
                     ]}
                   >
                     <MaterialCommunityIcons
                       name="account-check-outline"
                       size={22}
-                      color={theme.primary}
+                      color={C.navy}
                     />
                     <View style={styles.referralInviteeText}>
-                      <Text style={[styles.referralInviteeName, { color: theme.text }]}>
+                      <Text style={[styles.referralInviteeName, { color: C.textPrimary }]}>
                         {invitee.full_name || invitee.email || t("invited")}
                       </Text>
                       {invitee.email ? (
-                        <Text style={[styles.referralInviteeEmail, { color: theme.textSecondary }]}>
+                        <Text style={[styles.referralInviteeEmail, { color: C.textSecondary }]}>
                           {invitee.email}
                         </Text>
                       ) : null}
-                      <Text style={[styles.referralInviteeDate, { color: theme.textSecondary }]}>
+                      <Text style={[styles.referralInviteeDate, { color: C.textSecondary }]}>
                         {new Date(invitee.joined_at).toLocaleDateString()}
                       </Text>
                     </View>
@@ -1097,7 +1124,7 @@ export const SettingsScreen = ({ navigation }) => {
         styles.settingItem,
         showBorder && {
           borderBottomWidth: 1,
-          borderBottomColor: theme.borderLight,
+          borderBottomColor: C.border,
         },
         isLocked && { opacity: 0.55 },
       ]}
@@ -1113,28 +1140,28 @@ export const SettingsScreen = ({ navigation }) => {
           style={[
             styles.iconContainer,
             {
-              backgroundColor: isLocked ? theme.borderLight : theme.primaryLight,
+              backgroundColor: isLocked ? C.border : C.tintBlue,
             },
           ]}
         >
           <MaterialCommunityIcons
             name={isLocked ? "lock-outline" : icon}
             size={22}
-            color={isLocked ? theme.textSecondary : theme.primary}
+            color={isLocked ? C.textSecondary : C.navy}
           />
         </View>
         <View style={styles.settingTexts}>
           <Text
             style={[
               styles.settingTitle,
-              { color: isLocked ? theme.textSecondary : theme.text },
+              { color: isLocked ? C.textSecondary : C.textPrimary },
             ]}
           >
             {title}
           </Text>
           {(isLocked || subtitle) && (
             <Text
-              style={[styles.settingSubtitle, { color: theme.textSecondary }]}
+              style={[styles.settingSubtitle, { color: C.textSecondary }]}
             >
               {isLocked ? t("premiumFeature") : subtitle}
             </Text>
@@ -1147,28 +1174,28 @@ export const SettingsScreen = ({ navigation }) => {
           <Switch
             value={switchValue}
             onValueChange={onSwitchChange}
-            trackColor={{ false: theme.borderLight, true: theme.primary }}
-            thumbColor={theme.background}
-            ios_backgroundColor={theme.borderLight}
+            trackColor={{ false: C.border, true: C.navy }}
+            thumbColor={C.canvas}
+            ios_backgroundColor={C.border}
           />
         ) : isLocked ? (
           <MaterialCommunityIcons
             name="lock-outline"
             size={20}
-            color={theme.textSecondary}
+            color={C.textSecondary}
           />
         ) : editable ? (
           <MaterialCommunityIcons
             name="pencil"
             size={20}
-            color={theme.textSecondary}
+            color={C.textSecondary}
           />
         ) : (
           onPress && (
             <MaterialCommunityIcons
               name="chevron-right"
               size={24}
-              color={theme.textSecondary}
+              color={C.textSecondary}
             />
           )
         )}
@@ -1179,15 +1206,15 @@ export const SettingsScreen = ({ navigation }) => {
 
   const renderSection = ({ title, children }) => (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+      <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>
         {title}
       </Text>
       <View
         style={[
           styles.sectionContent,
           {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
+            backgroundColor: C.card,
+            borderColor: C.border,
           },
         ]}
       >
@@ -1198,10 +1225,66 @@ export const SettingsScreen = ({ navigation }) => {
     </View>
   );
 
+  const renderProfileCard = () => {
+    const name =
+      budget?.full_name ||
+      session?.user?.user_metadata?.full_name ||
+      "Your profile";
+    const email = budget?.email_address || session?.user?.email || "";
+    return (
+      <View
+        style={[
+          styles.profileCard,
+          { backgroundColor: C.card, borderColor: C.border },
+        ]}
+      >
+        <View style={[styles.profileAvatar, { backgroundColor: C.navy }]}>
+          {budget?.avatar_url ? (
+            <Image
+              source={{ uri: budget.avatar_url }}
+              style={styles.profileAvatarImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={styles.profileAvatarText}>
+              {name
+                .split(" ")
+                .slice(0, 2)
+                .map((p) => p[0])
+                .join("")
+                .toUpperCase()}
+            </Text>
+          )}
+        </View>
+        <View style={styles.profileInfo}>
+          <Text style={styles.profileName} numberOfLines={1}>
+            {name}
+          </Text>
+          {email ? (
+            <Text style={styles.profileEmail} numberOfLines={1}>
+              {email}
+            </Text>
+          ) : null}
+          <Text style={styles.profilePlan}>
+            {t(PLAN_CATALOG[plan]?.nameKey || "planFree")}
+            {isPremium ? " · Premium" : ""}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.profileEditBtn, { backgroundColor: C.coral }]}
+          onPress={() => navigation.navigate("Profile")}
+          accessibilityLabel="Edit profile"
+        >
+          <Text style={styles.profileEditText}>Edit</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <ScreenLayout
       navigation={navigation}
-      footerRoute="Settings"
+      footerRoute={null}
       header={
         <Header
           title={t("settings")}
@@ -1217,16 +1300,31 @@ export const SettingsScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
       >
+        {renderProfileCard()}
         {renderSection({
-          title: t("appearance"),
+          title: "Preferences",
           children: [
             renderSettingItem({
+              icon: "currency-rupee",
+              title: t("currency"),
+              subtitle: currencyLabel,
+              editable: false,
+              showBorder: true,
+            }),
+            renderSettingItem({
+              icon: "translate",
+              title: "Language",
+              subtitle: languageLabel,
+              editable: false,
+              showBorder: true,
+            }),
+            renderSettingItem({
               icon: "theme-light-dark",
-              title: t("darkMode"),
-              subtitle: t("darkModeSubtitle"),
+              title: "Theme",
+              subtitle: isDarkMode ? "Dark" : "Light",
               rightComponent: <ThemeToggle />,
               editable: false,
-              showBorder: false,
+              showBorder: true,
             }),
             renderSettingItem({
               icon: "bell-ring-outline",
@@ -1285,15 +1383,15 @@ export const SettingsScreen = ({ navigation }) => {
           <View
             style={[
               styles.accessStatusWrap,
-              { backgroundColor: theme.card, borderColor: theme.border },
+              { backgroundColor: C.card, borderColor: C.border },
             ]}
           >
             <MaterialCommunityIcons
               name={isPaidSubscriber ? "crown" : "television-play"}
               size={20}
-              color={theme.primary}
+              color={C.navy}
             />
-            <Text style={[styles.accessStatusText, { color: theme.text }]}>
+            <Text style={[styles.accessStatusText, { color: C.textPrimary }]}>
               {isPaidSubscriber
                 ? t("premiumAdFreePausedBilling")
                 : t("adSupportedAccessLabel")}
@@ -1330,6 +1428,39 @@ export const SettingsScreen = ({ navigation }) => {
             renderSettingItem({
               icon: "account-outline",
               title: t("editProfile"),
+              subtitle: "Name, mobile & UPI ID",
+              onPress: () => navigation.navigate("Profile"),
+              editable: false,
+            }),
+            renderSettingItem({
+              icon: "bell-outline",
+              title: t("notifications"),
+              subtitle: "Alerts and reminders",
+              onPress: () => navigation.navigate("Notification"),
+              editable: false,
+            }),
+            renderSettingItem({
+              icon: "shield-lock-outline",
+              title: "Privacy & Security",
+              subtitle: t("resetPassword"),
+              onPress: () => handleEdit({ modalKey: "Reset Password", title: t("resetPassword") }),
+              editable: false,
+            }),
+            renderSettingItem({
+              icon: "credit-card-outline",
+              title: "Payment Methods",
+              subtitle: isPremium
+                ? t("currentPlanLabel") +
+                  ": " +
+                  t(PLAN_CATALOG[plan]?.nameKey || "planFree")
+                : "Manage your subscription",
+              onPress: () => navigation.navigate("Paywall"),
+              editable: false,
+            }),
+            renderSettingItem({
+              icon: "qrcode",
+              title: "UPI Settings",
+              subtitle: budget?.upi_id || "Add your UPI ID",
               onPress: () => navigation.navigate("Profile"),
               editable: false,
             }),
@@ -1354,19 +1485,6 @@ export const SettingsScreen = ({ navigation }) => {
         })}
 
         {renderSection({
-          title: t("security"),
-          children: [
-            renderSettingItem({
-              icon: "lock-reset",
-              title: t("resetPassword"),
-              onPress: () => handleEdit({ modalKey: "Reset Password", title: t("resetPassword") }),
-              showBorder: false,
-              editable: false,
-            }),
-          ],
-        })}
-
-        {renderSection({
           title: t("dataManagement"),
           children: [
             renderSettingItem({
@@ -1377,7 +1495,7 @@ export const SettingsScreen = ({ navigation }) => {
               editable: false,
               lockedFeature: FEATURES.GOOGLE_DRIVE_BACKUP,
               rightComponent: dataActionLoading ? (
-                <ActivityIndicator size="small" color={theme.primary} />
+                <ActivityIndicator size="small" color={C.navy} />
               ) : null,
             }),
             renderSettingItem({
@@ -1388,7 +1506,7 @@ export const SettingsScreen = ({ navigation }) => {
               editable: false,
               lockedFeature: FEATURES.EXPORT_DATA,
               rightComponent: dataActionLoading ? (
-                <ActivityIndicator size="small" color={theme.primary} />
+                <ActivityIndicator size="small" color={C.navy} />
               ) : null,
             }),
             renderSettingItem({
@@ -1435,34 +1553,48 @@ export const SettingsScreen = ({ navigation }) => {
           title: t("support"),
           children: [
             renderSettingItem({
+              icon: "help-circle-outline",
+              title: "Help Centre",
+              subtitle: "FAQs and guides",
+              onPress: () => {
+                Alert.alert("Coming Soon", "Support features will be available soon!");
+              },
+              editable: false,
+            }),
+            renderSettingItem({
               icon: "information-outline",
               title: t("about"),
-              subtitle: t("version"),
+              subtitle: "About Trivense v1.0.0",
               showBorder: false,
               editable: false,
             }),
-            // renderSettingItem({
-            //   icon: "information-outline",
-            //   title: "Font Test",
-            //   subtitle: "Test the fonts",
-            //   showBorder: false,
-            //   editable: true,
-            //   onPress: () => navigation.navigate("FontTest"),
-            // }),
           ],
         })}
 
         <TouchableOpacity
           testID="settings-logout-button"
-          style={[styles.logoutButton, { backgroundColor: theme.errorLight }]}
+          style={[styles.logoutButton, { backgroundColor: "#FEE2E2" }]}
           onPress={handleLogout}
         >
-          <MaterialCommunityIcons name="logout" size={20} color={theme.error} />
-          <Text style={[styles.logoutText, { color: theme.error }]}>
+          <MaterialCommunityIcons name="logout" size={20} color={C.danger} />
+          <Text style={[styles.logoutText, { color: C.danger }]}>
             Log Out
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          testID="settings-delete-account-button"
+          style={styles.deleteButton}
+          onPress={handleDeleteAccount}
+        >
+          <Text style={[styles.deleteText, { color: C.danger }]}>
+            Delete Account
+          </Text>
+        </TouchableOpacity>
+        <Text style={[styles.versionText, { color: C.textTertiary }]}>
+          Trivense v1.0.0
+        </Text>
       </ScrollView>
+      <AdBanner />
       {renderEditModal()}
       {renderShareAppModal()}
       {featureLockModal}

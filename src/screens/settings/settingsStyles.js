@@ -1,17 +1,18 @@
 import { Platform, StyleSheet } from "react-native";
-import { typography, spacing, radii } from "../../theme/tokens";
+import { kinetic } from "../../theme/tokens";
 
-// Settings screen styles, extracted verbatim from SettingsScreen.js
-// (2,216 lines -> split so the screen file holds logic, not layout).
-//
-// Theme-dependent colours are real values now, not function values:
-// the original StyleSheet held function-valued colours, which React
-// Native silently ignores, so those borders rendered in the default
-// colour. Styles are built per theme via createSettingsStyles(theme) —
-// call sites already have `theme` from useTheme() / props, so light
-// and dark both render correctly.
+// Settings screen styles on the Kinetic Financial Neo-System tokens
+// (navy #003D66 / coral #F97316→#EA580C). Same style keys as before, so
+// SettingsScreen.js and PasswordResetSection.js keep working unchanged.
+// No theme argument: the kinetic palette is the single source of truth
+// for these screens (light design per the Stitch exports).
 
-export function createSettingsStyles(theme) {
+const C = kinetic.colors;
+const T = kinetic.typography;
+const S = kinetic.spacing;
+const R = kinetic.radii;
+
+export function createSettingsStyles() {
   return StyleSheet.create({
   container: {
     flex: 1,
@@ -19,6 +20,7 @@ export function createSettingsStyles(theme) {
   content: {
     flex: 1,
     padding: 16,
+    backgroundColor: C.canvas,
   },
   rewardedWrap: {
     marginBottom: 16,
@@ -26,14 +28,14 @@ export function createSettingsStyles(theme) {
   accessStatusWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: S.sm,
     marginBottom: 16,
-    padding: spacing.md,
-    borderRadius: radii.lg,
+    padding: S.md,
+    borderRadius: R.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },
   accessStatusText: {
-    ...typography.caption,
+    ...T.caption,
     flex: 1,
     fontWeight: "600",
   },
@@ -41,12 +43,14 @@ export function createSettingsStyles(theme) {
     marginBottom: 24,
   },
   sectionTitle: {
-    ...typography.micro,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
+    ...T.captionBold,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: S.sm,
+    marginLeft: S.xs,
   },
   sectionContent: {
-    borderRadius: radii.lg,
+    borderRadius: R.lg,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "transparent",
@@ -57,6 +61,7 @@ export function createSettingsStyles(theme) {
     justifyContent: "space-between",
     paddingVertical: 14,
     paddingHorizontal: 16,
+    minHeight: 56,
   },
   settingLeft: {
     flexDirection: "row",
@@ -105,11 +110,85 @@ export function createSettingsStyles(theme) {
     gap: 8,
     padding: 16,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 12,
+    minHeight: 52,
   },
   logoutText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  deleteButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    marginBottom: 16,
+    minHeight: 48,
+  },
+  deleteText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  versionText: {
+    ...T.caption,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  profileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+    borderRadius: R.lg,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  profileAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  profileAvatarText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: C.textInverse,
+  },
+  profileAvatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  profileInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  profileName: {
+    ...T.headingSmall,
+    color: C.textPrimary,
+  },
+  profileEmail: {
+    ...T.caption,
+    color: C.textSecondary,
+    marginTop: 2,
+  },
+  profilePlan: {
+    ...T.captionBold,
+    color: C.navy,
+    marginTop: 4,
+  },
+  profileEditBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: R.full,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 36,
+  },
+  profileEditText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: C.textInverse,
   },
   modalOverlay: {
     flex: 1,
@@ -151,10 +230,12 @@ export function createSettingsStyles(theme) {
   },
   modalButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
     minWidth: 80,
+    minHeight: 44,
     alignItems: "center",
+    justifyContent: "center",
   },
   modalButtonText: {
     fontSize: 14,
@@ -172,6 +253,7 @@ export function createSettingsStyles(theme) {
     alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
+    minHeight: 52,
   },
   selectorItemText: {
     fontSize: 16,
@@ -189,7 +271,7 @@ export function createSettingsStyles(theme) {
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.borderLight,
+    borderColor: C.border,
     fontSize: 16,
   },
   boardSelector: {
@@ -261,6 +343,7 @@ export function createSettingsStyles(theme) {
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
+    minHeight: 52,
   },
   upgradePremiumText: {
     color: "#FFFFFF",
@@ -274,10 +357,9 @@ export function createSettingsStyles(theme) {
     marginBottom: 20,
   },
   boardDetailItem: {
-    // marginBottom: 20,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: `${theme.text}08`,
+    backgroundColor: C.subtle,
   },
   boardDetailHeader: {
     flexDirection: "row",
@@ -349,6 +431,7 @@ export function createSettingsStyles(theme) {
     padding: 16,
     borderRadius: 12,
     gap: 12,
+    minHeight: 56,
   },
   shareOptionText: {
     fontSize: 16,
@@ -408,7 +491,7 @@ export function createSettingsStyles(theme) {
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.borderLight,
+    borderColor: C.border,
   },
   dropdownText: {
     fontSize: 16,
@@ -421,14 +504,14 @@ export function createSettingsStyles(theme) {
     right: 0,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.borderLight,
+    borderColor: C.border,
     maxHeight: 200,
     overflow: "scroll",
   },
   dropdownItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.borderLight,
+    borderBottomColor: C.border,
   },
   dropdownItemText: {
     fontSize: 16,
@@ -443,7 +526,7 @@ export function createSettingsStyles(theme) {
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.borderLight,
+    borderColor: C.border,
   },
   amountInput: {
     flex: 1,
